@@ -1,0 +1,22 @@
+{
+  "name": "larp-bugle-telegram-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Alexey Eremin <a.eremin.msu@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "deps": "yarn install",
+    "build": "tsc",
+    "start": "npm run build && forever start ./main.js",
+    "stop": "forever stop ./main.js"
+  },
+  "dependencies": {
+    "@types/dotenv": "^6.1.0",
+    "@types/node-telegram-bot-api": "^0.30.4",
+    "dotenv": "^6.2.0",
+    "node-telegram-bot-api": "^0.30.0"
+  },
+  "devDependencies": {
+    "typescript": "3.3.3"
+  }
+}
