@@ -5,6 +5,11 @@ dotenv.load();
 process.env.NTBA_FIX_319="X"
 import * as TelegramBot from 'node-telegram-bot-api';
 
+// TODO: Convert to cloud function:
+// 1) Explicitly use express to handle incoming http requests and pass them to the bot
+//    https://github.com/yagop/node-telegram-bot-api/issues/649#issuecomment-422845852
+// 2) Export express instance so Google Cloud Functions can handle it
+//    https://codeburst.io/express-js-on-cloud-functions-for-firebase-86ed26f9144c
 const m: TelegramBot.InlineKeyboardMarkup = {
   inline_keyboard: [[
     {
