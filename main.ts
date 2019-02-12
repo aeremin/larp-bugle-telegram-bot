@@ -5,11 +5,15 @@ dotenv.load();
 process.env.NTBA_FIX_319="X"
 import * as TelegramBot from 'node-telegram-bot-api';
 
-// TODO: Convert to cloud function:
-// 1) Explicitly use express to handle incoming http requests and pass them to the bot
-//    https://github.com/yagop/node-telegram-bot-api/issues/649#issuecomment-422845852
-// 2) Export express instance so Google Cloud Functions can handle it
-//    https://codeburst.io/express-js-on-cloud-functions-for-firebase-86ed26f9144c
+// Create a bot that uses 'polling' to fetch new updates
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
+bot.setWebHook('https://europe-west1-alice-larp.cloudfunctions.net/larp-bugle-telegram-bot');
+
+exports.cloudFn = (req: any, res: any) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+};
+
 const m: TelegramBot.InlineKeyboardMarkup = {
   inline_keyboard: [[
     {
@@ -22,9 +26,6 @@ const m: TelegramBot.InlineKeyboardMarkup = {
     },
   ]],
 };
-
-// Create a bot that uses 'polling' to fetch new updates
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
 // Matches "/vote [whatever]"
 bot.onText(/^\/vote (.+)/, async (msg, _match) => {
