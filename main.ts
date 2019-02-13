@@ -53,3 +53,51 @@ bot.on('callback_query', async (query) => {
     { reply_markup: m, chat_id: query.message.chat.id, message_id: query.message.message_id });
   await bot.answerCallbackQuery(query.id);
 });
+
+
+// Example group message
+/*
+{
+  "message_id": 10,
+  "from": {
+    "id": 238167359,
+    "is_bot": false,
+    "first_name": "Alexey",
+    "last_name": "Eremin",
+    "username": "aleremin",
+    "language_code": "en"
+  },
+  "chat": {
+    "id": -346184941,
+    "title": "larp_bugle_bot_test_group",
+    "type": "group",
+    "all_members_are_administrators": true
+  },
+  "date": 1550015816,
+  "group_chat_created": true
+}
+*/
+
+// Example private message
+/*
+{
+  "message_id":7,
+  "from": {
+    "id": 238167359,
+    "is_bot":false,
+    "first_name":"Alexey",
+    "last_name":"Eremin",
+    "username":"aleremin",
+    "language_code":"en"
+  },
+  "chat":{
+    "id":238167359,
+    "first_name":"Alexey",
+    "last_name":"Eremin",
+    "username":"aleremin",
+    "type":"private"
+  },
+  "date":1550015571,
+  "text":"test"
+}
+*/
