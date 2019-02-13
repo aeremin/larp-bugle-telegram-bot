@@ -5,8 +5,7 @@ dotenv.load();
 process.env.NTBA_FIX_319 = "X"
 import * as TelegramBot from 'node-telegram-bot-api';
 
-// Create a bot that uses 'polling' to fetch new updates
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string);
 bot.setWebHook('https://europe-west1-alice-larp.cloudfunctions.net/larp-bugle-telegram-bot');
 
 exports.cloudFn = (req: any, res: any) => {
