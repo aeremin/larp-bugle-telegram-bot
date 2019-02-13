@@ -6,8 +6,7 @@ dotenv.load();
 process.env.NTBA_FIX_319 = "X"
 import TelegramBot from 'node-telegram-bot-api';
 
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string);
-bot.setWebHook('https://europe-west1-alice-larp.cloudfunctions.net/larp-bugle-telegram-bot');
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
 const kModeratorChatId = -346184941;
 
@@ -18,11 +17,6 @@ class MessageVotes {
   public votesFor: number[] = [];
   public votesAgainst: number[] = [];
 }
-
-exports.cloudFn = (req: any, res: any) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-};
 
 async function saveDatastoreEntry(messageId: string, votes: MessageVotes) {
   const task = {
