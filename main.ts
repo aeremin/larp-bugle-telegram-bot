@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 dotenv.load();
 
 // See https://github.com/yagop/node-telegram-bot-api/issues/319
-process.env.NTBA_FIX_319="X"
+process.env.NTBA_FIX_319 = "X"
 import * as TelegramBot from 'node-telegram-bot-api';
 
 // Create a bot that uses 'polling' to fetch new updates
