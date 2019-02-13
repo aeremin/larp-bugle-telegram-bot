@@ -39,6 +39,7 @@ async function saveDatastoreEntry(messageId: string, votes: MessageVotes) {
 }
 
 async function readDatastoreEntry(messageId: string): Promise<MessageVotes> {
+  console.log('Querying data from Datastore');
   const queryResult = await gDatastore.get(gDatastore.key([kDatastoreKind, messageId]));
   console.log(`Query result: ${JSON.stringify(queryResult)}`);
   return queryResult[0] as MessageVotes;
@@ -79,7 +80,7 @@ bot.onText(/^(.+)/, async (msg) => {
 });
 
 bot.on('callback_query', async (query) => {
-  console.log(`Received message: ${JSON.stringify(query)}`);
+  console.log(`Received query: ${JSON.stringify(query)}`);
   if (!query.message || !query.message.text)
     return;
 
