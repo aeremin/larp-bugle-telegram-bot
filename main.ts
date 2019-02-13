@@ -86,16 +86,20 @@ bot.on('callback_query', async (query) => {
   const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
   const votes = await readDatastoreEntry(dbKey);
   console.log(`Current votes: ${JSON.stringify(votes)}`);
-
-  // TODO: Check if user already voted
+  const userId = query.from.id;
   if (query.data == '+') {
-    votes.votesFor.push(query.from.id);
+    if (!votes.votesFor.includes(userId)) {
+      votes.votesFor.push(userId);
+      votes.votesAgainst = votes.votesAgainst.filter(v => v != userId);
+    }
   } else if (query.data == '-') {
-    votes.votesAgainst.push(query.from.id);
-  } else {
-    return;
+    if (!votes.votesAgainst.includes(userId)) {
+      votes.votesAgainst.push(query.from.id);
+      votes.votesFor = votes.votesFor.filter(v => v != userId);
+    }
   }
   console.log(`And now votes are: ${JSON.stringify(votes)}`);
+
   // TODO: Do it in some transactional way
   await saveDatastoreEntry(dbKey, votes);
 
