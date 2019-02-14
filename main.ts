@@ -9,6 +9,8 @@ import TelegramBot from 'node-telegram-bot-api';
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
 const kModeratorChatId = -346184941;
+const kNewsChannelId = -1001283746274;
+const kVotesToApproveOrReject = 1;
 
 const gDatastore = new Datastore();
 const kDatastoreKind = 'MessageVotes';
@@ -98,7 +100,15 @@ bot.on('callback_query', async (query) => {
   // TODO: Do it in some transactional way
   await saveDatastoreEntry(dbKey, votes);
 
-  // TODO: Check if vote finished
-  await bot.editMessageReplyMarkup(createVoteMarkup(votes), {chat_id: query.message.chat.id, message_id: query.message.message_id});
+  if (votes.votesAgainst.length >= kVotesToApproveOrReject) {
+    await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
+  } else if (votes.votesFor.length >= kVotesToApproveOrReject) {
+    await bot.sendMessage(kNewsChannelId, query.message.text);
+    await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
+  } else {
+    await bot.editMessageReplyMarkup(createVoteMarkup(votes), {chat_id: query.message.chat.id, message_id: query.message.message_id});
+  }
+
   await bot.answerCallbackQuery(query.id);
 });
+
