@@ -11,7 +11,7 @@ const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling:
 
 const kModeratorChatId = -346184941;
 const kNewsChannelId = -1001283746274;
-const kVotesToApproveOrReject = 1;
+const kVotesToApproveOrReject = 2;
 
 const gDatastore = new Datastore();
 const kDatastoreKind = 'MessageVotes';
