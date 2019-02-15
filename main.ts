@@ -168,6 +168,11 @@ bot.onText(/^(.+)/, async (msg) => {
   saveReporterState(msg, s);
 });
 
+bot.on('message', async (msg) => {
+  if (!isPrivateMessage(msg)) return;
+  console.debug(JSON.stringify(msg));
+});
+
 function recalculateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
   if (votes.disallowedToVote.includes(userId))
     return false;
