@@ -119,7 +119,7 @@ bot.onText(/^\/yes(.*)/, async (msg) => {
     await bot.sendMessage(chatId, 'Сначала отправь текст новости!');
   } else if (s.state == 'waiting_approval') {
     const votes = new MessageVotes();
-    if (msg.from/* && msg.from.username != 'aleremin'*/) {
+    if (msg.from && msg.from.username != 'aleremin') {
       votes.disallowedToVote.push(msg.from.id);
     }
     const res = await bot.sendMessage(kModeratorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
