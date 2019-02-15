@@ -11,6 +11,7 @@ const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling:
 
 const kModeratorChatId = -346184941;
 const kNewsChannelId = -1001283746274;
+const kJunkGroupId = -367143261;
 const kVotesToApproveOrReject = 2;
 
 const gDatastore = new Datastore();
@@ -128,6 +129,7 @@ bot.on('callback_query', async (query) => {
   const maybeVotes = await processVotesUpdate(dbKey, query.from.id, query.data);
   if (maybeVotes) {
     if (maybeVotes.votesAgainst.length >= kVotesToApproveOrReject) {
+      await bot.sendMessage(kJunkGroupId, query.message.text);
       await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
     } else if (maybeVotes.votesFor.length >= kVotesToApproveOrReject) {
       await bot.sendMessage(kNewsChannelId, query.message.text);
