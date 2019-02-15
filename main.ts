@@ -5,6 +5,7 @@ dotenv.load();
 // See https://github.com/yagop/node-telegram-bot-api/issues/319
 process.env.NTBA_FIX_319 = "X"
 import TelegramBot from 'node-telegram-bot-api';
+import { DatastoreRequest } from '@google-cloud/datastore/request';
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
@@ -15,28 +16,26 @@ const kVotesToApproveOrReject = 1;
 const gDatastore = new Datastore();
 const kDatastoreKind = 'MessageVotes';
 
+const kMaxRetries = 10;
+
 class MessageVotes {
   public votesFor: number[] = [];
   public votesAgainst: number[] = [];
+  public finished = false;
 }
 
-async function saveDatastoreEntry(messageId: string, votes: MessageVotes) {
+async function saveDatastoreEntry(dsInterface: DatastoreRequest, messageId: string, votes: MessageVotes) {
   const task = {
     key: gDatastore.key([kDatastoreKind, messageId]),
     data: votes
   };
 
-  try {
-    await gDatastore.save(task);
-    console.log(`Saved ${task.key.name}`);
-  } catch (err) {
-    console.error('ERROR:', err);
-  }
+  await dsInterface.save(task);
 }
 
-async function readDatastoreEntry(messageId: string): Promise<MessageVotes> {
+async function readDatastoreEntry(dsInterface: DatastoreRequest, messageId: string): Promise<MessageVotes> {
   console.log('Querying data from Datastore');
-  const queryResult = await gDatastore.get(gDatastore.key([kDatastoreKind, messageId]));
+  const queryResult = await dsInterface.get(gDatastore.key([kDatastoreKind, messageId]));
   console.log(`Query result: ${JSON.stringify(queryResult)}`);
   return queryResult[0] as MessageVotes;
 }
@@ -70,10 +69,29 @@ bot.onText(/^(.+)/, async (msg) => {
   if (msg.chat && msg.chat.type == 'private' && msg.text) {
     const votes = new MessageVotes();
     const res = await bot.sendMessage(kModeratorChatId, msg.text, { reply_markup: createVoteMarkup(votes) });
-    await saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votes);
+    await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
     console.log(JSON.stringify(res));
   }
 });
+
+function updateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
+  if (modifier == '+') {
+    if (!votes.votesFor.includes(userId)) {
+      votes.votesFor.push(userId);
+      votes.votesAgainst = votes.votesAgainst.filter(v => v != userId);
+      votes.finished = votes.votesFor.length >= kVotesToApproveOrReject;
+      return true;
+    }
+  } else if (modifier == '-') {
+    if (!votes.votesAgainst.includes(userId)) {
+      votes.votesAgainst.push(userId);
+      votes.votesFor = votes.votesFor.filter(v => v != userId);
+      votes.finished = votes.votesAgainst.length >= kVotesToApproveOrReject;
+      return true;
+    }
+  }
+  return false;
+}
 
 bot.on('callback_query', async (query) => {
   console.log(`Received query: ${JSON.stringify(query)}`);
@@ -81,24 +99,24 @@ bot.on('callback_query', async (query) => {
     return;
 
   const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
-  const votes = await readDatastoreEntry(dbKey);
-  console.log(`Current votes: ${JSON.stringify(votes)}`);
   const userId = query.from.id;
-  if (query.data == '+') {
-    if (!votes.votesFor.includes(userId)) {
-      votes.votesFor.push(userId);
-      votes.votesAgainst = votes.votesAgainst.filter(v => v != userId);
-    }
-  } else if (query.data == '-') {
-    if (!votes.votesAgainst.includes(userId)) {
-      votes.votesAgainst.push(query.from.id);
-      votes.votesFor = votes.votesFor.filter(v => v != userId);
+  const modifier = query.data;
+  let votes = new MessageVotes();
+  for (let i = 0; i < kMaxRetries; ++i) {
+    try {
+      const transaction = gDatastore.transaction();
+      votes = await readDatastoreEntry(transaction, dbKey);
+      if (!modifier || votes.finished || !updateVotes(votes, userId, modifier)) {
+        await transaction.rollback();
+        break;
+      }
+      await saveDatastoreEntry(transaction, dbKey, votes);
+      await transaction.commit();
+      break;
+    } catch (e) {
+      console.error(`Caught error: ${e}, let's retry`);
     }
   }
-  console.log(`And now votes are: ${JSON.stringify(votes)}`);
-
-  // TODO: Do it in some transactional way
-  await saveDatastoreEntry(dbKey, votes);
 
   if (votes.votesAgainst.length >= kVotesToApproveOrReject) {
     await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
