@@ -102,6 +102,7 @@ async function processVotesUpdate(dbKey: string, userId: number, modifier: strin
       await transaction.run();
       votes = await readDatastoreEntry(transaction, dbKey);
       if (!modifier || votes.finished || !recalculateVotes(votes, userId, modifier)) {
+        await transaction.rollback();
         return undefined;
       }
       await saveDatastoreEntry(transaction, dbKey, votes);
