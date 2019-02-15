@@ -74,7 +74,7 @@ bot.onText(/^(.+)/, async (msg) => {
   }
 });
 
-function updateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
+function recalculateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
   if (modifier == '+') {
     if (!votes.votesFor.includes(userId)) {
       votes.votesFor.push(userId);
@@ -93,40 +93,46 @@ function updateVotes(votes: MessageVotes, userId: number, modifier: string): boo
   return false;
 }
 
+// Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
+async function processVotesUpdate(dbKey: string, userId: number, modifier: string | undefined): Promise<MessageVotes | undefined> {
+  let votes = new MessageVotes();
+  for (let i = 0; i < kMaxRetries; ++i) {
+    try {
+      const transaction = gDatastore.transaction();
+      votes = await readDatastoreEntry(transaction, dbKey);
+      if (!modifier || votes.finished || !recalculateVotes(votes, userId, modifier)) {
+        return undefined;
+      }
+      await saveDatastoreEntry(transaction, dbKey, votes);
+      const commitResult = await transaction.commit();
+      if (commitResult.length && commitResult[0].mutationResults.length &&
+        !commitResult[0].mutationResults[0].conflictDetected)
+        return votes;
+      console.warn('Retrying because of conflict');
+    } catch (e) {
+      console.error(`Caught error: ${e}, let's retry`);
+    }
+  }
+  return undefined;
+}
+
 bot.on('callback_query', async (query) => {
   console.log(`Received query: ${JSON.stringify(query)}`);
   if (!query.message || !query.message.text)
     return;
 
   const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
-  const userId = query.from.id;
-  const modifier = query.data;
-  let votes = new MessageVotes();
-  for (let i = 0; i < kMaxRetries; ++i) {
-    try {
-      const transaction = gDatastore.transaction();
-      votes = await readDatastoreEntry(transaction, dbKey);
-      if (!modifier || votes.finished || !updateVotes(votes, userId, modifier)) {
-        break;
-      }
-      await saveDatastoreEntry(transaction, dbKey, votes);
-      const commitResult = await transaction.commit();
-      if (commitResult.length && commitResult[0].mutationResults.length &&
-        !commitResult[0].mutationResults[0].conflictDetected)
-        break;
-      console.warn('Retrying because of conflict');
-    } catch (e) {
-      console.error(`Caught error: ${e}, let's retry`);
+  const maybeVotes = await processVotesUpdate(dbKey, query.from.id, query.data);
+  if (maybeVotes) {
+    if (maybeVotes.votesAgainst.length >= kVotesToApproveOrReject) {
+      await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
+    } else if (maybeVotes.votesFor.length >= kVotesToApproveOrReject) {
+      await bot.sendMessage(kNewsChannelId, query.message.text);
+      await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
+    } else {
+      await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes),
+        {chat_id: query.message.chat.id, message_id: query.message.message_id});
     }
-  }
-
-  if (votes.votesAgainst.length >= kVotesToApproveOrReject) {
-    await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
-  } else if (votes.votesFor.length >= kVotesToApproveOrReject) {
-    await bot.sendMessage(kNewsChannelId, query.message.text);
-    await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
-  } else {
-    await bot.editMessageReplyMarkup(createVoteMarkup(votes), {chat_id: query.message.chat.id, message_id: query.message.message_id});
   }
 
   await bot.answerCallbackQuery(query.id);
