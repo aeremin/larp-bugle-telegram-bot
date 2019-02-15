@@ -32,6 +32,7 @@ const gReporterStates = new Map<number, ReporterStateAndMessage>();;
 class MessageVotes {
   public votesFor: number[] = [];
   public votesAgainst: number[] = [];
+  public disallowedToVote: number[] = [];
   public finished = false;
 }
 
@@ -118,6 +119,9 @@ bot.onText(/^\/yes(.*)/, async (msg) => {
     await bot.sendMessage(chatId, 'Сначала отправь текст новости!');
   } else if (s.state == 'waiting_approval') {
     const votes = new MessageVotes();
+    if (msg.from/* && msg.from.username != 'aleremin'*/) {
+      votes.disallowedToVote.push(msg.from.id);
+    }
     const res = await bot.sendMessage(kModeratorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
     await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
     console.log(JSON.stringify(res));
@@ -165,6 +169,9 @@ bot.onText(/^(.+)/, async (msg) => {
 });
 
 function recalculateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
+  if (votes.disallowedToVote.includes(userId))
+    return false;
+
   if (modifier == '+') {
     if (!votes.votesFor.includes(userId)) {
       votes.votesFor.push(userId);
