@@ -79,19 +79,19 @@ function saveReporterState(msg: TelegramBot.Message, s: ReporterStateAndMessage)
 }
 
 // Matches "/vote [whatever]"
-bot.onText(/^\/ping(.+)/, async (msg, _match) => {
+bot.onText(/^\/ping(.*)/, async (msg, _match) => {
   const chatId = msg.chat.id;
   const res = await bot.sendMessage(chatId, 'Pong!');
   console.log(JSON.stringify(res));
 });
 
-bot.onText(/^\/start(.+)/, async (msg) => {
+bot.onText(/^\/start(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
   const chatId = msg.chat.id;
   await bot.sendMessage(chatId, 'Привет, бро! Есть чо? Жми /sendarticle чтоб отправить новость.');
 });
 
-bot.onText(/^\/sendarticle(.+)/, async (msg) => {
+bot.onText(/^\/sendarticle(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
   const chatId = msg.chat.id;
   const s = stateForReporter(msg);
@@ -107,7 +107,7 @@ bot.onText(/^\/sendarticle(.+)/, async (msg) => {
   saveReporterState(msg, s);
 });
 
-bot.onText(/^\/yes(.+)/, async (msg) => {
+bot.onText(/^\/yes(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
 
   const chatId = msg.chat.id;
@@ -129,7 +129,7 @@ bot.onText(/^\/yes(.+)/, async (msg) => {
   saveReporterState(msg, s);
 });
 
-bot.onText(/^\/no(.+)/, async (msg) => {
+bot.onText(/^\/no(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
 
   const chatId = msg.chat.id;
@@ -145,6 +145,8 @@ bot.onText(/^(.+)/, async (msg) => {
 
   // TODO: Support other types of content.
   if (!msg.text) return;
+
+  if (msg.text.startsWith('/')) return;
 
   const chatId = msg.chat.id;
   const s = stateForReporter(msg);
