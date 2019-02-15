@@ -111,8 +111,10 @@ bot.on('callback_query', async (query) => {
         break;
       }
       await saveDatastoreEntry(transaction, dbKey, votes);
-      await transaction.commit();
-      break;
+      const commitResult = await transaction.commit();
+      if (!commitResult[0].mutationResults[0].conflictDetected)
+        break;
+      console.warn('Retrying because of conflict');
     } catch (e) {
       console.error(`Caught error: ${e}, let's retry`);
     }
