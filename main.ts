@@ -99,6 +99,7 @@ async function processVotesUpdate(dbKey: string, userId: number, modifier: strin
   for (let i = 0; i < kMaxRetries; ++i) {
     try {
       const transaction = gDatastore.transaction();
+      await transaction.run();
       votes = await readDatastoreEntry(transaction, dbKey);
       if (!modifier || votes.finished || !recalculateVotes(votes, userId, modifier)) {
         return undefined;
