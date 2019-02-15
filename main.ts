@@ -19,6 +19,16 @@ const kDatastoreKind = 'MessageVotes';
 
 const kMaxRetries = 10;
 
+type ReporterState = 'start' | 'waiting_message' | 'waiting_approval';
+
+class ReporterStateAndMessage {
+  public state: ReporterState = 'start';
+  public message?: string;
+}
+
+// TODO: Add persistance?
+const gReporterStates = new Map<number, ReporterStateAndMessage>();;
+
 class MessageVotes {
   public votesFor: number[] = [];
   public votesAgainst: number[] = [];
@@ -56,6 +66,18 @@ function createVoteMarkup(votes: MessageVotes): TelegramBot.InlineKeyboardMarkup
   }
 }
 
+function isPrivateMessage(msg: TelegramBot.Message): boolean {
+  return msg.chat && msg.chat.type == 'private';
+}
+
+function stateForReporter(msg: TelegramBot.Message): ReporterStateAndMessage {
+  return gReporterStates.get((msg.from as TelegramBot.User).id) || new ReporterStateAndMessage();
+}
+
+function saveReporterState(msg: TelegramBot.Message, s: ReporterStateAndMessage) {
+  gReporterStates.set((msg.from as TelegramBot.User).id, s);
+}
+
 // Matches "/vote [whatever]"
 bot.onText(/^\/ping(.+)/, async (msg, _match) => {
   const chatId = msg.chat.id;
@@ -63,16 +85,81 @@ bot.onText(/^\/ping(.+)/, async (msg, _match) => {
   console.log(JSON.stringify(res));
 });
 
-// Any text...
-bot.onText(/^(.+)/, async (msg) => {
-  console.log(`Received message: ${JSON.stringify(msg)}`);
-  // ... which is sent privately
-  if (msg.chat && msg.chat.type == 'private' && msg.text) {
+bot.onText(/^\/start(.+)/, async (msg) => {
+  if (!isPrivateMessage(msg)) return;
+  const chatId = msg.chat.id;
+  await bot.sendMessage(chatId, 'Привет, бро! Есть чо? Жми /sendarticle чтоб отправить новость.');
+});
+
+bot.onText(/^\/sendarticle(.+)/, async (msg) => {
+  if (!isPrivateMessage(msg)) return;
+  const chatId = msg.chat.id;
+  const s = stateForReporter(msg);
+
+  if (s.state == 'start' || s.state == 'waiting_message') {
+    await bot.sendMessage(chatId, 'Кидай текст новости! Можно включить в него ссылку.');
+    s.state = 'waiting_message';
+  } else if (s.state == 'waiting_approval') {
+    await bot.sendMessage(chatId,
+      'Новость уже готова к отправке! Жми /yes чтобы подтвердить отправку или /no чтобы отменить отправку этой новости и предложить другую.');
+  }
+
+  saveReporterState(msg, s);
+});
+
+bot.onText(/^\/yes(.+)/, async (msg) => {
+  if (!isPrivateMessage(msg)) return;
+
+  const chatId = msg.chat.id;
+  const s = stateForReporter(msg);
+  if (s.state == 'start') {
+    await bot.sendMessage(chatId, 'Чтоб отправить новость, сначала нажми /sendarticle.');
+  } else if (s.state == 'waiting_message') {
+    await bot.sendMessage(chatId, 'Сначала отправь текст новости!');
+  } else if (s.state == 'waiting_approval') {
     const votes = new MessageVotes();
-    const res = await bot.sendMessage(kModeratorChatId, msg.text, { reply_markup: createVoteMarkup(votes) });
+    const res = await bot.sendMessage(kModeratorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
     await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
     console.log(JSON.stringify(res));
+    await bot.sendMessage(chatId, 'Готово! Новость отправлена модераторам. Спасибо за помощь!');
+    s.state = 'start';
+    s.message = undefined;
   }
+
+  saveReporterState(msg, s);
+});
+
+bot.onText(/^\/no(.+)/, async (msg) => {
+  if (!isPrivateMessage(msg)) return;
+
+  const chatId = msg.chat.id;
+  const s = stateForReporter(msg);
+  s.state = 'start';
+  s.message = undefined;
+  await bot.sendMessage(chatId, 'Понял! Отменяю отправку новости. Жми /sendarticle чтоб отправить другую.');
+  saveReporterState(msg, s);
+});
+
+bot.onText(/^(.+)/, async (msg) => {
+  if (!isPrivateMessage(msg)) return;
+
+  // TODO: Support other types of content.
+  if (!msg.text) return;
+
+  const chatId = msg.chat.id;
+  const s = stateForReporter(msg);
+  if (s.state == 'start') {
+    await bot.sendMessage(chatId, 'Чтоб отправить новость, сначала нажми /sendarticle.');
+  } else if (s.state == 'waiting_message') {
+    await bot.sendMessage(chatId,
+      'Почти готово! Жми /yes чтобы подтвердить отправку или /no чтобы отменить отправку этой новости и предложить другую. ' +
+      'Если нужно - можно отредактировать сообщение с предложенной новостью до нажатия /yes.');
+    s.state = 'waiting_approval';
+    s.message = msg.text;
+  } else if (s.state == 'waiting_approval') {
+  }
+
+  saveReporterState(msg, s);
 });
 
 function recalculateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
