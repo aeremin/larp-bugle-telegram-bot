@@ -107,6 +107,7 @@ async function processVotesUpdate(dbKey: string, userId: number, modifier: strin
       }
       await saveDatastoreEntry(transaction, dbKey, votes);
       const commitResult = await transaction.commit();
+      console.log(`Commit result: ${JSON.stringify(commitResult)}`);
       if (commitResult.length && commitResult[0].mutationResults.length &&
         !commitResult[0].mutationResults[0].conflictDetected)
         return votes;
