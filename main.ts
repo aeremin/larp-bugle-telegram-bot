@@ -107,7 +107,6 @@ bot.on('callback_query', async (query) => {
       const transaction = gDatastore.transaction();
       votes = await readDatastoreEntry(transaction, dbKey);
       if (!modifier || votes.finished || !updateVotes(votes, userId, modifier)) {
-        await transaction.rollback();
         break;
       }
       await saveDatastoreEntry(transaction, dbKey, votes);
