@@ -9,8 +9,8 @@ import { DatastoreRequest } from '@google-cloud/datastore/request';
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
-const kModeratorChatId = -346184941;
-const kNewsChannelId = -1001283746274;
+const kModeratorChatId = -1001248047463;
+const kNewsChannelId = -1001168838549;
 const kJunkGroupId = -367143261;
 const kVotesToApproveOrReject = 2;
 
