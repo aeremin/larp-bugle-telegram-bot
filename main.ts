@@ -89,7 +89,7 @@ bot.onText(/^\/ping(.*)/, async (msg, _match) => {
 bot.onText(/^\/start(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
   const chatId = msg.chat.id;
-  await bot.sendMessage(chatId, 'Привет, бро! Есть чо? Жми /sendarticle чтоб отправить новость.');
+  await bot.sendMessage(chatId, 'Привет, ролевой репортер! Есть что интересного? Жми /sendarticle чтобы отправить РИ новость! Помни, редакторы могут принять не все.');
 });
 
 bot.onText(/^\/sendarticle(.*)/, async (msg) => {
