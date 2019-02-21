@@ -19,6 +19,7 @@
     "node-telegram-bot-api": "^0.30.0"
   },
   "devDependencies": {
+    "forever": "^0.15.3",
     "typescript": "3.3.3"
   }
 }
