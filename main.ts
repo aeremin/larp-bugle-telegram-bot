@@ -6,6 +6,9 @@ dotenv.load();
 process.env.NTBA_FIX_319 = "X"
 import TelegramBot from 'node-telegram-bot-api';
 import { DatastoreRequest } from '@google-cloud/datastore/request';
+import * as messages from "./config/main";
+
+const {text, tag} = messages.getConfig();
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
@@ -79,6 +82,17 @@ function saveReporterState(msg: TelegramBot.Message, s: ReporterStateAndMessage)
   gReporterStates.set((msg.from as TelegramBot.User).id, s);
 }
 
+function preprocessMessageBeforeApproval(messageText: string): string {
+  if (tag)
+  {
+    return `${messageText}\n${tag}`;
+  }
+  else 
+  {
+    return messageText;
+  }
+}
+
 // Matches "/vote [whatever]"
 bot.onText(/^\/ping(.*)/, async (msg, _match) => {
   const chatId = msg.chat.id;
@@ -89,7 +103,7 @@ bot.onText(/^\/ping(.*)/, async (msg, _match) => {
 bot.onText(/^\/start(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
   const chatId = msg.chat.id;
-  await bot.sendMessage(chatId, 'Привет, ролевой репортер! Есть что интересного? Жми /sendarticle чтобы отправить РИ новость! Помни, редакторы могут принять не все.');
+  await bot.sendMessage(chatId, text.HELLO_MESSAGE);
 });
 
 bot.onText(/^\/sendarticle(.*)/, async (msg) => {
@@ -98,11 +112,10 @@ bot.onText(/^\/sendarticle(.*)/, async (msg) => {
   const s = stateForReporter(msg);
 
   if (s.state == 'start' || s.state == 'waiting_message') {
-    await bot.sendMessage(chatId, 'Кидай текст новости! Можно включить в него ссылку.');
+    await bot.sendMessage(chatId, text.SEND_ARTICLE_NOW);
     s.state = 'waiting_message';
   } else if (s.state == 'waiting_approval') {
-    await bot.sendMessage(chatId,
-      'Новость уже готова к отправке! Жми /yes чтобы подтвердить отправку или /no чтобы отменить отправку этой новости и предложить другую.');
+    await bot.sendMessage(chatId, text.ARTICLE_WAITING_FOR_APPROVAL);
   }
 
   saveReporterState(msg, s);
@@ -114,9 +127,9 @@ bot.onText(/^\/yes(.*)/, async (msg) => {
   const chatId = msg.chat.id;
   const s = stateForReporter(msg);
   if (s.state == 'start') {
-    await bot.sendMessage(chatId, 'Чтоб отправить новость, сначала нажми /sendarticle.');
+    await bot.sendMessage(chatId, text.NEED_SEND_ARTICLE_CMD);
   } else if (s.state == 'waiting_message') {
-    await bot.sendMessage(chatId, 'Сначала отправь текст новости!');
+    await bot.sendMessage(chatId, text.NEED_ARTICLE_TEXT);
   } else if (s.state == 'waiting_approval') {
     const votes = new MessageVotes();
     if (msg.from && msg.from.username != 'aleremin') {
@@ -125,7 +138,7 @@ bot.onText(/^\/yes(.*)/, async (msg) => {
     const res = await bot.sendMessage(kModeratorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
     await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
     console.log(JSON.stringify(res));
-    await bot.sendMessage(chatId, 'Готово! Новость отправлена модераторам. Спасибо за помощь!');
+    await bot.sendMessage(chatId, text.THANK_YOU_FOR_ARTICLE);
     s.state = 'start';
     s.message = undefined;
   }
@@ -140,7 +153,7 @@ bot.onText(/^\/no(.*)/, async (msg) => {
   const s = stateForReporter(msg);
   s.state = 'start';
   s.message = undefined;
-  await bot.sendMessage(chatId, 'Понял! Отменяю отправку новости. Жми /sendarticle чтоб отправить другую.');
+  await bot.sendMessage(chatId, text.ARTICLE_SEND_WAS_CANCELLED);
   saveReporterState(msg, s);
 });
 
@@ -155,13 +168,11 @@ bot.onText(/^(.+)/, async (msg) => {
   const chatId = msg.chat.id;
   const s = stateForReporter(msg);
   if (s.state == 'start') {
-    await bot.sendMessage(chatId, 'Чтоб отправить новость, сначала нажми /sendarticle.');
+    await bot.sendMessage(chatId, text.NEED_SEND_ARTICLE_CMD);
   } else if (s.state == 'waiting_message') {
-    await bot.sendMessage(chatId,
-      'Почти готово! Жми /yes чтобы подтвердить отправку или /no чтобы отменить отправку этой новости и предложить другую. ' +
-      'Если нужно - можно отредактировать сообщение с предложенной новостью до нажатия /yes.');
+    await bot.sendMessage(chatId, text.ARTICLE_REQUEST_APPROVAL);
     s.state = 'waiting_approval';
-    s.message = msg.text;
+    s.message = preprocessMessageBeforeApproval(msg.text);
   } else if (s.state == 'waiting_approval') {
   }
 
