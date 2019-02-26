@@ -8,7 +8,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { DatastoreRequest } from '@google-cloud/datastore/request';
 import * as messages from "./config/main";
 
-const {text, tag} = messages.getConfig();
+const {textMessages: gTextMessages, tag: gTag} = messages.getConfig();
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
 
@@ -83,12 +83,9 @@ function saveReporterState(msg: TelegramBot.Message, s: ReporterStateAndMessage)
 }
 
 function preprocessMessageBeforeApproval(messageText: string): string {
-  if (tag)
-  {
-    return `${messageText}\n${tag}`;
-  }
-  else 
-  {
+  if (gTag) {
+    return `${messageText}\n${gTag}`;
+  } else {
     return messageText;
   }
 }
@@ -103,7 +100,7 @@ bot.onText(/^\/ping(.*)/, async (msg, _match) => {
 bot.onText(/^\/start(.*)/, async (msg) => {
   if (!isPrivateMessage(msg)) return;
   const chatId = msg.chat.id;
-  await bot.sendMessage(chatId, text.HELLO_MESSAGE);
+  await bot.sendMessage(chatId, gTextMessages.HELLO_MESSAGE);
 });
 
 bot.onText(/^\/sendarticle(.*)/, async (msg) => {
@@ -112,10 +109,10 @@ bot.onText(/^\/sendarticle(.*)/, async (msg) => {
   const s = stateForReporter(msg);
 
   if (s.state == 'start' || s.state == 'waiting_message') {
-    await bot.sendMessage(chatId, text.SEND_ARTICLE_NOW);
+    await bot.sendMessage(chatId, gTextMessages.SEND_ARTICLE_NOW);
     s.state = 'waiting_message';
   } else if (s.state == 'waiting_approval') {
-    await bot.sendMessage(chatId, text.ARTICLE_WAITING_FOR_APPROVAL);
+    await bot.sendMessage(chatId, gTextMessages.ARTICLE_WAITING_FOR_APPROVAL);
   }
 
   saveReporterState(msg, s);
@@ -127,9 +124,9 @@ bot.onText(/^\/yes(.*)/, async (msg) => {
   const chatId = msg.chat.id;
   const s = stateForReporter(msg);
   if (s.state == 'start') {
-    await bot.sendMessage(chatId, text.NEED_SEND_ARTICLE_CMD);
+    await bot.sendMessage(chatId, gTextMessages.NEED_SEND_ARTICLE_CMD);
   } else if (s.state == 'waiting_message') {
-    await bot.sendMessage(chatId, text.NEED_ARTICLE_TEXT);
+    await bot.sendMessage(chatId, gTextMessages.NEED_ARTICLE_TEXT);
   } else if (s.state == 'waiting_approval') {
     const votes = new MessageVotes();
     if (msg.from && msg.from.username != 'aleremin') {
@@ -138,7 +135,7 @@ bot.onText(/^\/yes(.*)/, async (msg) => {
     const res = await bot.sendMessage(kModeratorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
     await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
     console.log(JSON.stringify(res));
-    await bot.sendMessage(chatId, text.THANK_YOU_FOR_ARTICLE);
+    await bot.sendMessage(chatId, gTextMessages.THANK_YOU_FOR_ARTICLE);
     s.state = 'start';
     s.message = undefined;
   }
@@ -153,7 +150,7 @@ bot.onText(/^\/no(.*)/, async (msg) => {
   const s = stateForReporter(msg);
   s.state = 'start';
   s.message = undefined;
-  await bot.sendMessage(chatId, text.ARTICLE_SEND_WAS_CANCELLED);
+  await bot.sendMessage(chatId, gTextMessages.ARTICLE_SEND_WAS_CANCELLED);
   saveReporterState(msg, s);
 });
 
@@ -168,9 +165,9 @@ bot.onText(/^(.+)/, async (msg) => {
   const chatId = msg.chat.id;
   const s = stateForReporter(msg);
   if (s.state == 'start') {
-    await bot.sendMessage(chatId, text.NEED_SEND_ARTICLE_CMD);
+    await bot.sendMessage(chatId, gTextMessages.NEED_SEND_ARTICLE_CMD);
   } else if (s.state == 'waiting_message') {
-    await bot.sendMessage(chatId, text.ARTICLE_REQUEST_APPROVAL);
+    await bot.sendMessage(chatId, gTextMessages.ARTICLE_REQUEST_APPROVAL);
     s.state = 'waiting_approval';
     s.message = preprocessMessageBeforeApproval(msg.text);
   } else if (s.state == 'waiting_approval') {
