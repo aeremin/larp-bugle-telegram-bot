@@ -6,7 +6,7 @@ import Datastore from '@google-cloud/datastore'
 import TelegramBot from 'node-telegram-bot-api';
 import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/main';
-import { createPrivateMessageUpdate, sleep, kPrivateChatId } from './test_helpers';
+import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
 import { gDatastore } from './storage';
 
@@ -52,19 +52,19 @@ describe('Behaviour test', () => {
       bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
       expectation.verify();
     }
-    await sleep(20);
+    await microSleep();
     {
       const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
       bot.processUpdate(createPrivateMessageUpdate('Awesome news article: http://example.com'));
       expectation.verify();
     }
-    await sleep(20);
+    await microSleep();
     {
       const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId);
       expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
       const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId);
       bot.processUpdate(createPrivateMessageUpdate('/yes'));
-      await sleep(20);
+      await microSleep();
       expectation.verify();
       expectation2.verify();
     }
