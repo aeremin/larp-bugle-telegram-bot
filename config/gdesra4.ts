@@ -1,9 +1,8 @@
-import { BotMessages } from './types';
 import * as normal from './normal';
 
 
 // tslint:disable:max-line-length
-export function getMessages(): BotMessages {
+export function getMessages(): normal.BotMessages {
   return {
     ...normal.getMessages(),
     HELLO_MESSAGE:

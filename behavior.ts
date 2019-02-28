@@ -1,13 +1,9 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { BotConfig } from './config/types';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
 import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes } from './util';
 import { gDatastore, saveDatastoreEntry, readDatastoreEntry } from './storage';
+import { BotConfig } from './config/main';
 
-// TODO: Move to config?
-const kModeratorChatId = process.env.TELEGRAM_BOT_MODERATOR_CHAT_ID || -1001248047463;
-const kNewsChannelId = process.env.TELEGRAM_BOT_NEWS_CHANNEL_ID || -1001168838549;
-const kJunkGroupId = process.env.TELEGRAM_BOT_JUNK_CHANNEL_ID || -367143261;
 const kMaxRetries = 10;
 
 export function setUpBotBehavior(bot: TelegramBot, config: BotConfig) {
@@ -16,7 +12,7 @@ export function setUpBotBehavior(bot: TelegramBot, config: BotConfig) {
 
   setUpReporterDialog(bot, config);
 
-  setUpModeratorsVoting(bot);
+  setUpModeratorsVoting(bot, config);
 }
 
 function setUpPing(bot: TelegramBot) {
@@ -76,7 +72,7 @@ function setUpReporterDialog(bot: TelegramBot, config: BotConfig) {
       if (msg.from && msg.from.username != 'aleremin') {
         votes.disallowedToVote.push(msg.from.id);
       }
-      const res = await bot.sendMessage(kModeratorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
+      const res = await bot.sendMessage(config.moderatorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
       await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
@@ -148,7 +144,7 @@ async function processVotesUpdate(dbKey: string, userId: number, modifier: strin
   return undefined;
 }
 
-function setUpModeratorsVoting(bot: TelegramBot) {
+function setUpModeratorsVoting(bot: TelegramBot, config: BotConfig) {
   bot.on('callback_query', async (query) => {
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message || !query.message.text)
@@ -158,10 +154,10 @@ function setUpModeratorsVoting(bot: TelegramBot) {
     const maybeVotes = await processVotesUpdate(dbKey, query.from.id, query.data);
     if (maybeVotes) {
       if (maybeVotes.votesAgainst.length >= kVotesToApproveOrReject) {
-        await bot.sendMessage(kJunkGroupId, query.message.text);
+        await bot.sendMessage(config.junkGroupId, query.message.text);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
       } else if (maybeVotes.votesFor.length >= kVotesToApproveOrReject) {
-        await bot.sendMessage(kNewsChannelId, query.message.text);
+        await bot.sendMessage(config.newsChannelId, query.message.text);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes),

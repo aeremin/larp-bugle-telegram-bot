@@ -21,11 +21,13 @@
     "@types/lodash": "^4.14.121",
     "@types/mocha": "^5.2.6",
     "@types/node-telegram-bot-api": "^0.30.4",
+    "@types/sinon": "^7.0.8",
     "chai": "^4.2.0",
     "dotenv": "^6.2.0",
     "lodash": "^4.17.11",
     "mocha": "^6.0.2",
     "node-telegram-bot-api": "^0.30.0",
+    "sinon": "^7.2.5",
     "ts-node": "^8.0.2"
   },
   "devDependencies": {

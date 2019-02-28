@@ -17,3 +17,7 @@ export function stateForReporter(msg: TelegramBot.Message): ReporterStateAndMess
 export function saveReporterState(msg: TelegramBot.Message, s: ReporterStateAndMessage) {
   gReporterStates.set((msg.from as TelegramBot.User).id, s);
 }
+
+export function testOnlyReset() {
+  gReporterStates.clear();
+}
