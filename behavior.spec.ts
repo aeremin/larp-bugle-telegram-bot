@@ -60,9 +60,9 @@ describe('Behaviour test', () => {
     }
     await microSleep();
     {
-      const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId);
+      const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
       expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
-      const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId);
+      const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
       bot.processUpdate(createPrivateMessageUpdate('/yes'));
       await microSleep();
       expectation.verify();
