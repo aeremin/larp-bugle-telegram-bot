@@ -69,4 +69,25 @@ describe('Behaviour test', () => {
       expectation2.verify();
     }
   });
+
+  it("/sendarticle flow - cancelled", async () => {
+    {
+      const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
+      bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+      expectation.verify();
+    }
+    await microSleep();
+    {
+      const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
+      bot.processUpdate(createPrivateMessageUpdate('Dumb news article: http://example.com'));
+      expectation.verify();
+    }
+    await microSleep();
+    {
+      const expectation = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/Отменяю/));
+      bot.processUpdate(createPrivateMessageUpdate('/no'));
+      await microSleep();
+      expectation.verify();
+    }
+  });
 });
