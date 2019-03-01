@@ -19,7 +19,7 @@ describe('Behaviour test', () => {
   const kChannelId = 30;
 
   beforeEach(() => {
-    bot = new TelegramBot("111", {polling: false});
+    bot = new TelegramBot("111", { polling: false });
     botMocker = sinon.mock(bot);
 
     testOnlyReset();
@@ -61,7 +61,7 @@ describe('Behaviour test', () => {
     await microSleep();
     {
       const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
-      expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
+      expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
       const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
       bot.processUpdate(createPrivateMessageUpdate('/yes'));
       await microSleep();
