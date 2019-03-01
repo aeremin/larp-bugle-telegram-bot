@@ -6,6 +6,10 @@ let gMessageId = 0;
 export const kPrivateChatId = 17;
 export const kUserId = 123;
 
+export const kModeratorChatId = 18;
+export const kModeratorChatMessageId = 27;
+export const kModeratorChatMessageDbKey = `${kModeratorChatId}_${kModeratorChatMessageId}`;
+
 export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
   return {
     update_id: gUpdateId++,
@@ -22,6 +26,31 @@ export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
         id: kPrivateChatId,
         type: 'private'
       }
+    }
+  };
+}
+
+export function createVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+  return {
+    update_id: gUpdateId++,
+    callback_query: {
+      id: (gMessageId++).toString(),
+      data: modifier,
+      from: {
+        id: userId,
+        is_bot: false,
+        first_name: ""
+      },
+      message: {
+        message_id: kModeratorChatMessageId,
+        date: new Date().valueOf(),
+        text: messageText,
+        chat: {
+          id: kModeratorChatId,
+          type: 'group'
+        }
+      },
+      chat_instance: ""
     }
   };
 }

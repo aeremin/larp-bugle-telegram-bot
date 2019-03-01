@@ -6,16 +6,17 @@ import Datastore from '@google-cloud/datastore'
 import TelegramBot from 'node-telegram-bot-api';
 import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/config';
-import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId } from './test_helpers';
+import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, createVoteUpdate, kModeratorChatMessageId, kModeratorChatId } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { DatastoreConnector, DatabaseInterface } from './storage';
+import { DatastoreConnector, DatabaseInterface, ModifierFunction } from './storage';
+import { MessageVotes } from './util';
+import { expect } from 'chai';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
   let datastore: DatabaseInterface = new DatastoreConnector();
   let botMocker: sinon.SinonMock;
   let datastoreMocker: sinon.SinonMock;
-  const kModeratorChatId = 10;
   const kJunkGroupId = 20;
   const kChannelId = 30;
 
@@ -94,6 +95,50 @@ describe('Behaviour test', () => {
         await microSleep();
         expectation.verify();
       }
+    });
+  });
+
+  describe('Moderator interaction', () => {
+    it("Got positive votes, posting to news channel", async () => {
+      const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
+      datastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
+        (_: string, modifier: ModifierFunction) => modifier(votes) ? votes : undefined);
+
+      botMocker.expects("editMessageReplyMarkup").withExactArgs(sinon.match.any,
+        { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
+      botMocker.expects("answerCallbackQuery").twice();
+
+      bot.processUpdate(createVoteUpdate(1, 'Good news article', '+'));
+      await microSleep();
+      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [1], votesAgainst: [], finished: false });
+
+      botMocker.expects("sendMessage").withArgs(kChannelId, sinon.match('Good news article'));
+      botMocker.expects("deleteMessage").withArgs(kModeratorChatId, kModeratorChatMessageId.toString());
+
+      bot.processUpdate(createVoteUpdate(2, 'Good news article', '+'));
+      await microSleep();
+      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [1, 2], votesAgainst: [], finished: true });
+    });
+
+    it("Got negative votes, posting to junk group", async () => {
+      const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
+      datastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
+        (_: string, modifier: ModifierFunction) => modifier(votes) ? votes : undefined);
+
+      botMocker.expects("editMessageReplyMarkup").withExactArgs(sinon.match.any,
+        { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
+      botMocker.expects("answerCallbackQuery").twice();
+
+      bot.processUpdate(createVoteUpdate(1, 'Bad news article', '-'));
+      await microSleep();
+      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
+
+      botMocker.expects("sendMessage").withArgs(kJunkGroupId, sinon.match('Bad news article'));
+      botMocker.expects("deleteMessage").withArgs(kModeratorChatId, kModeratorChatMessageId.toString());
+
+      bot.processUpdate(createVoteUpdate(2, 'Bad news article', '-'));
+      await microSleep();
+      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: true });
     });
   });
 });
