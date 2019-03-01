@@ -1,16 +1,16 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
 import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes } from './util';
-import { gDatastore, saveDatastoreEntry, readDatastoreEntry, updateDatastoreEntry } from './storage';
+import { DatabaseInterface } from './storage';
 import { BotConfig } from './config/config';
 
-export function setUpBotBehavior(bot: TelegramBot, config: BotConfig) {
+export function setUpBotBehavior(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
   setUpPing(bot);
   setUpDebugLogging(bot);
 
-  setUpReporterDialog(bot, config);
+  setUpReporterDialog(bot, db, config);
 
-  setUpModeratorsVoting(bot, config);
+  setUpModeratorsVoting(bot, db, config);
 }
 
 function setUpPing(bot: TelegramBot) {
@@ -34,7 +34,7 @@ function isPrivateMessage(msg: TelegramBot.Message): boolean {
   return msg.chat && msg.chat.type == 'private';
 }
 
-function setUpReporterDialog(bot: TelegramBot, config: BotConfig) {
+function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
   bot.onText(/^\/start(.*)/, async (msg) => {
     if (!isPrivateMessage(msg)) return;
     const chatId = msg.chat.id;
@@ -71,7 +71,7 @@ function setUpReporterDialog(bot: TelegramBot, config: BotConfig) {
         votes.disallowedToVote.push(msg.from.id);
       }
       const res = await bot.sendMessage(config.moderatorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
-      await saveDatastoreEntry(gDatastore, `${res.chat.id}_${res.message_id}`, votes);
+      await db.saveDatastoreEntry(undefined, `${res.chat.id}_${res.message_id}`, votes);
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
       s.state = 'start';
@@ -117,20 +117,20 @@ function setUpReporterDialog(bot: TelegramBot, config: BotConfig) {
 
 
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
-async function processVotesUpdate(dbKey: string, userId: number, modifier: string | undefined): Promise<MessageVotes | undefined> {
-  return updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
+async function processVotesUpdate(db: DatabaseInterface, dbKey: string, userId: number, modifier: string | undefined): Promise<MessageVotes | undefined> {
+  return db.updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
     return modifier != undefined && !votes.finished && recalculateVotes(votes, userId, modifier);
   });
 }
 
-function setUpModeratorsVoting(bot: TelegramBot, config: BotConfig) {
+function setUpModeratorsVoting(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
   bot.on('callback_query', async (query) => {
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message || !query.message.text)
       return;
 
     const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
-    const maybeVotes = await processVotesUpdate(dbKey, query.from.id, query.data);
+    const maybeVotes = await processVotesUpdate(db, dbKey, query.from.id, query.data);
     if (maybeVotes) {
       if (maybeVotes.votesAgainst.length >= kVotesToApproveOrReject) {
         await bot.sendMessage(config.junkGroupId, query.message.text);

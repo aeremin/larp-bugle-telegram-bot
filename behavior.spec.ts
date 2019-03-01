@@ -8,12 +8,12 @@ import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/config';
 import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { gDatastore } from './storage';
+import { DatastoreConnector } from './storage';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
   let botMocker: sinon.SinonMock;
-  const datastoreMocker: sinon.SinonStubbedInstance<Datastore> = sinon.stub(gDatastore);
+  const datastoreMocker = sinon.stub(new DatastoreConnector());
   const kModeratorChatId = 10;
   const kJunkGroupId = 20;
   const kChannelId = 30;
@@ -24,7 +24,7 @@ describe('Behaviour test', () => {
 
     testOnlyReset();
 
-    setUpBotBehavior(bot, {
+    setUpBotBehavior(bot, datastoreMocker, {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
       junkGroupId: kJunkGroupId,
