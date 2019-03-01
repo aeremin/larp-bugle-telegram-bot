@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
 import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes } from './util';
 import { gDatastore, saveDatastoreEntry, readDatastoreEntry } from './storage';
-import { BotConfig } from './config/main';
+import { BotConfig } from './config/config';
 
 const kMaxRetries = 10;
 

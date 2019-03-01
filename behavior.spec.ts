@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import Datastore from '@google-cloud/datastore'
 import TelegramBot from 'node-telegram-bot-api';
 import { setUpBotBehavior } from './behavior';
-import { getConfig } from './config/main';
+import { getConfig } from './config/config';
 import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
 import { gDatastore } from './storage';

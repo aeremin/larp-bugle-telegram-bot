@@ -5,7 +5,7 @@ dotenv.load();
 process.env.NTBA_FIX_319 = "X"
 import TelegramBot from 'node-telegram-bot-api';
 
-import * as messages from "./config/main";
+import * as messages from "./config/config";
 import { setUpBotBehavior } from './behavior';
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
