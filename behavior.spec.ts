@@ -6,14 +6,15 @@ import Datastore from '@google-cloud/datastore'
 import TelegramBot from 'node-telegram-bot-api';
 import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/config';
-import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep } from './test_helpers';
+import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { DatastoreConnector } from './storage';
+import { DatastoreConnector, DatabaseInterface } from './storage';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
+  let datastore: DatabaseInterface = new DatastoreConnector();
   let botMocker: sinon.SinonMock;
-  const datastoreMocker = sinon.stub(new DatastoreConnector());
+  let datastoreMocker: sinon.SinonMock;
   const kModeratorChatId = 10;
   const kJunkGroupId = 20;
   const kChannelId = 30;
@@ -23,8 +24,8 @@ describe('Behaviour test', () => {
     botMocker = sinon.mock(bot);
 
     testOnlyReset();
-
-    setUpBotBehavior(bot, datastoreMocker, {
+    datastoreMocker = sinon.mock(datastore)
+    setUpBotBehavior(bot, datastore, {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
       junkGroupId: kJunkGroupId,
@@ -34,6 +35,7 @@ describe('Behaviour test', () => {
 
   afterEach(() => {
     botMocker.verify();
+    datastoreMocker.verify();
   });
 
   it("Text message without /sendarticle reaction", () => {
@@ -63,6 +65,8 @@ describe('Behaviour test', () => {
       const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
       expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
       const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
+      datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
+        sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
       bot.processUpdate(createPrivateMessageUpdate('/yes'));
       await microSleep();
       expectation.verify();
