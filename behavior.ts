@@ -34,6 +34,16 @@ function isPrivateMessage(msg: TelegramBot.Message): boolean {
   return msg.chat && msg.chat.type == 'private';
 }
 
+function anonymouslyForwardMessage(chatId: number, msg: TelegramBot.Message, options: TelegramBot.SendBasicOptions,
+  tag: string | undefined, bot: TelegramBot) {
+  if (msg.text) {
+    return bot.sendMessage(chatId, preprocessMessageBeforeApproval(msg.text, tag), options);
+  } else if (msg.photo) {
+    return bot.sendPhoto(chatId, msg.photo[0].file_id,
+      { ...options, caption: preprocessMessageBeforeApproval(msg.caption, tag) });
+  }
+}
+
 function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
   bot.onText(/^\/start(.*)/, async (msg) => {
     if (!isPrivateMessage(msg)) return;
@@ -70,7 +80,12 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: Bo
       if (msg.from && msg.from.username != 'aleremin') {
         votes.disallowedToVote.push(msg.from.id);
       }
-      const res = await bot.sendMessage(config.moderatorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
+      const res = await anonymouslyForwardMessage(config.moderatorChatId, s.message as TelegramBot.Message,
+        { reply_markup: createVoteMarkup(votes) }, config.tag, bot);
+      if (!res) {
+        console.error('Failed to forward message!');
+        return;
+      }
       await db.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votes);
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
@@ -92,13 +107,10 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: Bo
     saveReporterState(msg, s);
   });
 
-  bot.onText(/^(.+)/, async (msg) => {
+  const articleHandler = async (msg: TelegramBot.Message) => {
     if (!isPrivateMessage(msg)) return;
-
-    // TODO: Support other types of content.
-    if (!msg.text) return;
-
-    if (msg.text.startsWith('/')) return;
+    if (!msg.text && !msg.photo) return;
+    if (msg.text && msg.text.startsWith('/')) return;
 
     const chatId = msg.chat.id;
     const s = stateForReporter(msg);
@@ -107,12 +119,15 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: Bo
     } else if (s.state == 'waiting_message') {
       await bot.sendMessage(chatId, config.textMessages.ARTICLE_REQUEST_APPROVAL);
       s.state = 'waiting_approval';
-      s.message = preprocessMessageBeforeApproval(msg.text, config.tag);
+      s.message = msg;
     } else if (s.state == 'waiting_approval') {
     }
 
     saveReporterState(msg, s);
-  });
+  };
+
+  bot.onText(/^(.+)/, articleHandler);
+  bot.on('photo', articleHandler);
 }
 
 
@@ -133,14 +148,14 @@ function setUpModeratorsVoting(bot: TelegramBot, db: DatabaseInterface, config: 
     const maybeVotes = await processVotesUpdate(db, dbKey, query.from.id, query.data);
     if (maybeVotes) {
       if (maybeVotes.votesAgainst.length >= kVotesToApproveOrReject) {
-        await bot.sendMessage(config.junkGroupId, query.message.text);
+        await anonymouslyForwardMessage(config.junkGroupId, query.message, {}, undefined, bot);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
       } else if (maybeVotes.votesFor.length >= kVotesToApproveOrReject) {
-        await bot.sendMessage(config.newsChannelId, query.message.text);
+        await anonymouslyForwardMessage(config.newsChannelId, query.message, {}, undefined, bot);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes),
-          {chat_id: query.message.chat.id, message_id: query.message.message_id});
+          { chat_id: query.message.chat.id, message_id: query.message.message_id });
       }
     }
 

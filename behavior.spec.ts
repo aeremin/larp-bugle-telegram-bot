@@ -6,7 +6,7 @@ import Datastore from '@google-cloud/datastore'
 import TelegramBot from 'node-telegram-bot-api';
 import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/config';
-import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, createVoteUpdate, kModeratorChatMessageId, kModeratorChatId } from './test_helpers';
+import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, createVoteUpdate, kModeratorChatMessageId, kModeratorChatId, createPrivateImageMessageUpdate } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
 import { DatastoreConnector, DatabaseInterface, ModifierFunction } from './storage';
 import { MessageVotes } from './util';
@@ -65,6 +65,32 @@ describe('Behaviour test', () => {
       await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
+        expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
+        const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
+        datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
+          sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
+        bot.processUpdate(createPrivateMessageUpdate('/yes'));
+        await microSleep();
+        expectation.verify();
+        expectation2.verify();
+      }
+    });
+
+    it("/sendarticle flow with image - finished", async () => {
+      {
+        const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
+        bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+        expectation.verify();
+      }
+      await microSleep();
+      {
+        const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
+        bot.processUpdate(createPrivateImageMessageUpdate('Awesome picture'));
+        expectation.verify();
+      }
+      await microSleep();
+      {
+        const expectation = botMocker.expects("sendPhoto").withArgs(kModeratorChatId, sinon.match.any, sinon.match({ caption: 'Awesome picture'}));
         expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
         const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
         datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,

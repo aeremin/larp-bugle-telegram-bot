@@ -30,6 +30,32 @@ export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
   };
 }
 
+export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Update {
+  return {
+    update_id: gUpdateId++,
+    message: {
+      caption,
+      photo: [{
+        width: 100,
+        height: 100,
+        file_id: 'abcde'
+      }],
+      from: {
+        id: kUserId,
+        is_bot: false,
+        first_name: ""
+      },
+      message_id: gMessageId++,
+      date: new Date().valueOf(),
+      chat: {
+        id: kPrivateChatId,
+        type: 'private'
+      }
+    }
+  };
+}
+
+
 export function createVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
   return {
     update_id: gUpdateId++,

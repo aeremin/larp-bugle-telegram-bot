@@ -4,7 +4,7 @@ type ReporterState = 'start' | 'waiting_message' | 'waiting_approval';
 
 class ReporterStateAndMessage {
   public state: ReporterState = 'start';
-  public message?: string;
+  public message?: TelegramBot.Message;
 }
 
 // TODO: Add persistance?

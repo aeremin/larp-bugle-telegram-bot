@@ -2,7 +2,9 @@ import TelegramBot from 'node-telegram-bot-api';
 
 export const kVotesToApproveOrReject = 2;
 
-export function preprocessMessageBeforeApproval(messageText: string, tag: string | undefined): string {
+export function preprocessMessageBeforeApproval(messageText: string | undefined, tag: string | undefined): string {
+  if (!messageText)
+    messageText = '';
   if (tag) {
     return `${messageText}\n${tag}`;
   } else {
