@@ -1,10 +1,8 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
 import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes } from './util';
-import { gDatastore, saveDatastoreEntry, readDatastoreEntry } from './storage';
+import { gDatastore, saveDatastoreEntry, readDatastoreEntry, updateDatastoreEntry } from './storage';
 import { BotConfig } from './config/config';
-
-const kMaxRetries = 10;
 
 export function setUpBotBehavior(bot: TelegramBot, config: BotConfig) {
   setUpPing(bot);
@@ -120,28 +118,9 @@ function setUpReporterDialog(bot: TelegramBot, config: BotConfig) {
 
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
 async function processVotesUpdate(dbKey: string, userId: number, modifier: string | undefined): Promise<MessageVotes | undefined> {
-  let votes = new MessageVotes();
-  for (let i = 0; i < kMaxRetries; ++i) {
-    try {
-      const transaction = gDatastore.transaction();
-      await transaction.run();
-      votes = await readDatastoreEntry(transaction, dbKey);
-      if (!modifier || votes.finished || !recalculateVotes(votes, userId, modifier)) {
-        await transaction.rollback();
-        return undefined;
-      }
-      await saveDatastoreEntry(transaction, dbKey, votes);
-      const commitResult = await transaction.commit();
-      console.log(`Commit result: ${JSON.stringify(commitResult)}`);
-      if (commitResult.length && commitResult[0].mutationResults.length &&
-        !commitResult[0].mutationResults[0].conflictDetected)
-        return votes;
-      console.warn('Retrying because of conflict');
-    } catch (e) {
-      console.error(`Caught error: ${e}, let's retry`);
-    }
-  }
-  return undefined;
+  return updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
+    return modifier != undefined && !votes.finished && recalculateVotes(votes, userId, modifier);
+  });
 }
 
 function setUpModeratorsVoting(bot: TelegramBot, config: BotConfig) {
