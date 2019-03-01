@@ -30,6 +30,7 @@ describe('Utils tests', () => {
     });
   });
 
+  // TODO: Add better tests for votes.finished calculation
   describe('recalculateVotes', () => {
     const votes: MessageVotes = {votesFor: [1, 2, 3], votesAgainst: [4], disallowedToVote: [6, 7], finished: false}
 
