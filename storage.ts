@@ -7,8 +7,8 @@ const kDatastoreKind = 'MessageVotes';
 export type ModifierFunction = (v: MessageVotes) => boolean;
 
 export interface DatabaseInterface {
-  saveDatastoreEntry(dsInterface: DatastoreRequest | undefined, dbKey: string, votes: MessageVotes): void;
-  readDatastoreEntry(dsInterface: DatastoreRequest, dbKey: string): Promise<MessageVotes>;
+  saveDatastoreEntry(dbKey: string, votes: MessageVotes): void;
+  readDatastoreEntry(dbKey: string): Promise<MessageVotes>;
   updateDatastoreEntry(dbKey: string, modifier: ModifierFunction): Promise<MessageVotes | undefined>
 }
 
@@ -16,22 +16,12 @@ export class DatastoreConnector implements DatabaseInterface {
   private datastore = new Datastore();
   constructor(private maxRetries: number = 10) {}
 
-  public async saveDatastoreEntry(dsInterface: DatastoreRequest | undefined, dbKey: string, votes: MessageVotes) {
-    const task = {
-      key: this.datastore.key([kDatastoreKind, dbKey]),
-      data: votes
-    };
-    if (!dsInterface)
-      dsInterface = this.datastore;
-    await dsInterface.save(task);
+  public saveDatastoreEntry(dbKey: string, votes: MessageVotes) {
+    return this.saveDatastoreEntryImpl(this.datastore, dbKey, votes);
   }
 
-  public async readDatastoreEntry(dsInterface: DatastoreRequest, dbKey: string): Promise<MessageVotes> {
-    console.log('Querying data from Datastore');
-    const queryResult = await dsInterface.get(this.datastore.key([kDatastoreKind, dbKey]));
-    console.log(`Query result: ${JSON.stringify(queryResult)}`);
-
-    return queryResult[0] as MessageVotes;
+  public readDatastoreEntry(dbKey: string): Promise<MessageVotes> {
+    return this.readDatastoreEntryImpl(this.datastore, dbKey);
   }
 
   public async updateDatastoreEntry(dbKey: string, modifier: ModifierFunction): Promise<MessageVotes | undefined> {
@@ -39,12 +29,12 @@ export class DatastoreConnector implements DatabaseInterface {
       try {
         const transaction = this.datastore.transaction();
         await transaction.run();
-        const votes = await this.readDatastoreEntry(transaction, dbKey);
+        const votes = await this.readDatastoreEntryImpl(transaction, dbKey);
         if (!modifier(votes)) {
           await transaction.rollback();
           return undefined;
         }
-        await this.saveDatastoreEntry(transaction, dbKey, votes);
+        await this.saveDatastoreEntryImpl(transaction, dbKey, votes);
         const commitResult = await transaction.commit();
         if (commitResult.length && commitResult[0].mutationResults.length &&
           !commitResult[0].mutationResults[0].conflictDetected)
@@ -56,5 +46,24 @@ export class DatastoreConnector implements DatabaseInterface {
     }
     return undefined;
   }
+
+  private async saveDatastoreEntryImpl(dsInterface: DatastoreRequest | undefined, dbKey: string, votes: MessageVotes) {
+    const task = {
+      key: this.datastore.key([kDatastoreKind, dbKey]),
+      data: votes
+    };
+    if (!dsInterface)
+      dsInterface = this.datastore;
+    await dsInterface.save(task);
+  }
+
+  private async readDatastoreEntryImpl(dsInterface: DatastoreRequest, dbKey: string): Promise<MessageVotes> {
+    console.log('Querying data from Datastore');
+    const queryResult = await dsInterface.get(this.datastore.key([kDatastoreKind, dbKey]));
+    console.log(`Query result: ${JSON.stringify(queryResult)}`);
+
+    return queryResult[0] as MessageVotes;
+  }
+
 }
 

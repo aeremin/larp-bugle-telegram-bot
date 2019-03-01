@@ -71,7 +71,7 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: Bo
         votes.disallowedToVote.push(msg.from.id);
       }
       const res = await bot.sendMessage(config.moderatorChatId, s.message as string, { reply_markup: createVoteMarkup(votes) });
-      await db.saveDatastoreEntry(undefined, `${res.chat.id}_${res.message_id}`, votes);
+      await db.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votes);
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
       s.state = 'start';
