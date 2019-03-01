@@ -141,7 +141,7 @@ async function processVotesUpdate(db: DatabaseInterface, dbKey: string, userId: 
 function setUpModeratorsVoting(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
   bot.on('callback_query', async (query) => {
     console.log(`Received query: ${JSON.stringify(query)}`);
-    if (!query.message || !query.message.text)
+    if (!query.message)
       return;
 
     const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
