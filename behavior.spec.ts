@@ -38,60 +38,62 @@ describe('Behaviour test', () => {
     datastoreMocker.verify();
   });
 
-  it("Text message without /sendarticle reaction", () => {
-    botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/сначала .*\/sendarticle/));
-    bot.processUpdate(createPrivateMessageUpdate('Hello brother'));
-  });
+  describe('Reporter interaction', () => {
+    it("Text message without /sendarticle reaction", () => {
+      botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/сначала .*\/sendarticle/));
+      bot.processUpdate(createPrivateMessageUpdate('Hello brother'));
+    });
 
-  it("/start reaction", () => {
-    botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Привет.* \/sendarticle/));
-    bot.processUpdate(createPrivateMessageUpdate('/start'));
-  });
+    it("/start reaction", () => {
+      botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Привет.* \/sendarticle/));
+      bot.processUpdate(createPrivateMessageUpdate('/start'));
+    });
 
-  it("/sendarticle flow - finished", async () => {
-    {
-      const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
-      bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
-      expectation.verify();
-    }
-    await microSleep();
-    {
-      const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
-      bot.processUpdate(createPrivateMessageUpdate('Awesome news article: http://example.com'));
-      expectation.verify();
-    }
-    await microSleep();
-    {
-      const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
-      expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
-      const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
-      datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
-        sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
-      bot.processUpdate(createPrivateMessageUpdate('/yes'));
+    it("/sendarticle flow - finished", async () => {
+      {
+        const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
+        bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+        expectation.verify();
+      }
       await microSleep();
-      expectation.verify();
-      expectation2.verify();
-    }
-  });
-
-  it("/sendarticle flow - cancelled", async () => {
-    {
-      const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
-      bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
-      expectation.verify();
-    }
-    await microSleep();
-    {
-      const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
-      bot.processUpdate(createPrivateMessageUpdate('Dumb news article: http://example.com'));
-      expectation.verify();
-    }
-    await microSleep();
-    {
-      const expectation = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/Отменяю/));
-      bot.processUpdate(createPrivateMessageUpdate('/no'));
+      {
+        const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
+        bot.processUpdate(createPrivateMessageUpdate('Awesome news article: http://example.com'));
+        expectation.verify();
+      }
       await microSleep();
-      expectation.verify();
-    }
+      {
+        const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
+        expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
+        const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
+        datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
+          sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
+        bot.processUpdate(createPrivateMessageUpdate('/yes'));
+        await microSleep();
+        expectation.verify();
+        expectation2.verify();
+      }
+    });
+
+    it("/sendarticle flow - cancelled", async () => {
+      {
+        const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
+        bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+        expectation.verify();
+      }
+      await microSleep();
+      {
+        const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
+        bot.processUpdate(createPrivateMessageUpdate('Dumb news article: http://example.com'));
+        expectation.verify();
+      }
+      await microSleep();
+      {
+        const expectation = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/Отменяю/));
+        bot.processUpdate(createPrivateMessageUpdate('/no'));
+        await microSleep();
+        expectation.verify();
+      }
+    });
   });
 });
