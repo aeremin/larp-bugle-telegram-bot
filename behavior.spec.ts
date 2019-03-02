@@ -8,7 +8,7 @@ import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/config';
 import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, kModeratorChatMessageId, kModeratorChatId, createPrivateImageMessageUpdate, createModeratorVoteUpdate, createReaderVoteUpdate, kChannelId, kChannelMessageId } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { DatastoreConnector, DatabaseInterface, ModifierFunction } from './storage';
+import { DatastoreConnector, DatabaseInterface } from './storage';
 import { MessageVotes } from './util';
 import { expect } from 'chai';
 
@@ -127,7 +127,7 @@ describe('Behaviour test', () => {
     it("Got positive votes, posting to news channel", async () => {
       const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
       datastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
-        (_: string, modifier: ModifierFunction) => modifier(votes) ? votes : undefined);
+        (_: string, modifier) => modifier(votes) ? votes : undefined);
 
       botMocker.expects("editMessageReplyMarkup").withExactArgs(sinon.match.any,
         { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
@@ -153,7 +153,7 @@ describe('Behaviour test', () => {
     it("Got negative votes, posting to junk group", async () => {
       const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
       datastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
-        (_: string, modifier: ModifierFunction) => modifier(votes) ? votes : undefined);
+        (_: string, modifier) => modifier(votes) ? votes : undefined);
 
       botMocker.expects("editMessageReplyMarkup").withExactArgs(sinon.match.any,
         { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
@@ -176,7 +176,7 @@ describe('Behaviour test', () => {
     it("Many readers can vote", async () => {
       const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
       datastoreMocker.expects('updateDatastoreEntry').thrice().callsFake(
-        (_: string, modifier: ModifierFunction) => modifier(votes) ? votes : undefined);
+        (_: string, modifier) => modifier(votes) ? votes : undefined);
       botMocker.expects("editMessageReplyMarkup").thrice().withExactArgs(sinon.match.any,
           { chat_id: kChannelId, message_id: kChannelMessageId });
       botMocker.expects("answerCallbackQuery").thrice();
