@@ -58,7 +58,7 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
     const queryResult = await dsInterface.get(this.datastore.key([this.kDatastoreKind, dbKey]));
     console.log(`Query result: ${JSON.stringify(queryResult)}`);
 
-    return queryResult[0] == undefined ? undefined : queryResult[0] as unknown as T;
+    return queryResult[0] ? queryResult[0] as unknown as T : undefined;
   }
 }
 
