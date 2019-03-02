@@ -1,30 +1,31 @@
 import Datastore from '@google-cloud/datastore'
 import { DatastoreRequest } from '@google-cloud/datastore/request';
+import { MessageVotes, UserStats } from './util';
 
-export interface DatabaseInterface {
-  saveDatastoreEntry<T>(dbKey: string, votes: T): void;
-  readDatastoreEntry<T>(dbKey: string): Promise<T>;
-  updateDatastoreEntry<T>(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined>
+export interface DatabaseInterface<T> {
+  saveDatastoreEntry(dbKey: string, votes: T): void;
+  readDatastoreEntry(dbKey: string): Promise<T>;
+  updateDatastoreEntry(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined>
 }
 
-class DatastoreConnector implements DatabaseInterface {
+class DatastoreConnector<T> implements DatabaseInterface<T> {
   private datastore = new Datastore();
   constructor(private readonly kDatastoreKind, private maxRetries: number = 10) { }
 
-  public saveDatastoreEntry<T>(dbKey: string, votes: T) {
+  public saveDatastoreEntry(dbKey: string, votes: T) {
     return this.saveDatastoreEntryImpl(this.datastore, dbKey, votes);
   }
 
-  public readDatastoreEntry<T>(dbKey: string): Promise<T> {
+  public readDatastoreEntry(dbKey: string): Promise<T> {
     return this.readDatastoreEntryImpl(this.datastore, dbKey);
   }
 
-  public async updateDatastoreEntry<T>(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined> {
+  public async updateDatastoreEntry(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined> {
     for (let i = 0; i < this.maxRetries; ++i) {
       try {
         const transaction = this.datastore.transaction();
         await transaction.run();
-        const votes = await this.readDatastoreEntryImpl<T>(transaction, dbKey);
+        const votes = await this.readDatastoreEntryImpl(transaction, dbKey);
         if (!modifier(votes)) {
           await transaction.rollback();
           return undefined;
@@ -42,7 +43,7 @@ class DatastoreConnector implements DatabaseInterface {
     return undefined;
   }
 
-  private async saveDatastoreEntryImpl<T>(dsInterface: DatastoreRequest | undefined, dbKey: string, votes: T) {
+  private async saveDatastoreEntryImpl(dsInterface: DatastoreRequest | undefined, dbKey: string, votes: T) {
     const task = {
       key: this.datastore.key([this.kDatastoreKind, dbKey]),
       data: votes
@@ -52,7 +53,7 @@ class DatastoreConnector implements DatabaseInterface {
     await dsInterface.save(task);
   }
 
-  private async readDatastoreEntryImpl<T>(dsInterface: DatastoreRequest, dbKey: string): Promise<T> {
+  private async readDatastoreEntryImpl(dsInterface: DatastoreRequest, dbKey: string): Promise<T> {
     console.log('Querying data from Datastore');
     const queryResult = await dsInterface.get(this.datastore.key([this.kDatastoreKind, dbKey]));
     console.log(`Query result: ${JSON.stringify(queryResult)}`);
@@ -61,13 +62,13 @@ class DatastoreConnector implements DatabaseInterface {
   }
 }
 
-export class MessageVotesDatabase extends DatastoreConnector {
+export class MessageVotesDatabase extends DatastoreConnector<MessageVotes> {
   constructor() {
     super('MessageVotes');
   }
 }
 
-export class UserStatsDatabase extends DatastoreConnector {
+export class UserStatsDatabase extends DatastoreConnector<UserStats> {
   constructor() {
     super('UserStats');
   }

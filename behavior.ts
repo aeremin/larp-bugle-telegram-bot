@@ -4,7 +4,7 @@ import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, recalc
 import { DatabaseInterface } from './storage';
 import { BotConfig } from './config/config';
 
-export function setUpBotBehavior(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
+export function setUpBotBehavior(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, config: BotConfig) {
   setUpPing(bot);
   setUpDebugLogging(bot);
 
@@ -44,7 +44,7 @@ function anonymouslyForwardMessage(chatId: number, msg: TelegramBot.Message, opt
   }
 }
 
-function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
+function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, config: BotConfig) {
   bot.onText(/^\/start(.*)/, async (msg) => {
     if (!isPrivateMessage(msg)) return;
     const chatId = msg.chat.id;
@@ -139,15 +139,15 @@ function stringToVote(s: string | undefined): Vote | undefined {
 const kVotesToApproveOrReject = 2;
 
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
-async function processVotesUpdate(db: DatabaseInterface, dbKey: string, userId: number,
+async function processVotesUpdate(db: DatabaseInterface<MessageVotes>, dbKey: string, userId: number,
   modifier: string | undefined, votesToComplete: number): Promise<MessageVotes | undefined> {
-  return db.updateDatastoreEntry<MessageVotes>(dbKey, (votes: MessageVotes) => {
+  return db.updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
     const vote = stringToVote(modifier);
     return vote != undefined && recalculateVotes(votes, userId, vote, votesToComplete);
   });
 }
 
-function setUpVoting(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
+function setUpVoting(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, config: BotConfig) {
   bot.on('callback_query', async (query) => {
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message)

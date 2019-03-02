@@ -14,7 +14,7 @@ import { expect } from 'chai';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
-  let datastore: DatabaseInterface = new MessageVotesDatabase();
+  let datastoreVotes: DatabaseInterface<MessageVotes> = new MessageVotesDatabase();
   let botMocker: sinon.SinonMock;
   let datastoreMocker: sinon.SinonMock;
   const kJunkGroupId = 20;
@@ -24,8 +24,8 @@ describe('Behaviour test', () => {
     botMocker = sinon.mock(bot);
 
     testOnlyReset();
-    datastoreMocker = sinon.mock(datastore)
-    setUpBotBehavior(bot, datastore, {
+    datastoreMocker = sinon.mock(datastoreVotes)
+    setUpBotBehavior(bot, datastoreVotes, {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
       junkGroupId: kJunkGroupId,

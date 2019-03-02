@@ -32,6 +32,8 @@ export class MessageVotes {
   public finished = false;
 }
 
+export class UserStats {}
+
 export type Vote = '+' | '-';
 
 export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, maxVotes: number): boolean {
