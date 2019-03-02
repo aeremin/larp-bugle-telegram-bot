@@ -2,19 +2,19 @@ process.env.TELEGRAM_BOT_MODERATOR_CHAT_ID = "129";
 
 import 'mocha';
 import sinon from 'sinon';
-import Datastore from '@google-cloud/datastore'
 import TelegramBot from 'node-telegram-bot-api';
 import { setUpBotBehavior } from './behavior';
 import { getConfig } from './config/config';
-import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, kModeratorChatMessageId, kModeratorChatId, createPrivateImageMessageUpdate, createModeratorVoteUpdate, createReaderVoteUpdate, kChannelId, kChannelMessageId } from './test_helpers';
+import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, kModeratorChatMessageId, kModeratorChatId,
+  createPrivateImageMessageUpdate, createModeratorVoteUpdate, createReaderVoteUpdate, kChannelId, kChannelMessageId } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { DatastoreConnector, DatabaseInterface } from './storage';
+import { DatabaseInterface, MessageVotesDatabase } from './storage';
 import { MessageVotes } from './util';
 import { expect } from 'chai';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
-  let datastore: DatabaseInterface = new DatastoreConnector();
+  let datastore: DatabaseInterface = new MessageVotesDatabase();
   let botMocker: sinon.SinonMock;
   let datastoreMocker: sinon.SinonMock;
   const kJunkGroupId = 20;

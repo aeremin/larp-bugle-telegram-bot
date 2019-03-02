@@ -1,17 +1,15 @@
 import Datastore from '@google-cloud/datastore'
 import { DatastoreRequest } from '@google-cloud/datastore/request';
 
-const kDatastoreKind = 'MessageVotes';
-
 export interface DatabaseInterface {
   saveDatastoreEntry<T>(dbKey: string, votes: T): void;
   readDatastoreEntry<T>(dbKey: string): Promise<T>;
   updateDatastoreEntry<T>(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined>
 }
 
-export class DatastoreConnector implements DatabaseInterface {
+class DatastoreConnector implements DatabaseInterface {
   private datastore = new Datastore();
-  constructor(private maxRetries: number = 10) {}
+  constructor(private readonly kDatastoreKind, private maxRetries: number = 10) { }
 
   public saveDatastoreEntry<T>(dbKey: string, votes: T) {
     return this.saveDatastoreEntryImpl(this.datastore, dbKey, votes);
@@ -46,7 +44,7 @@ export class DatastoreConnector implements DatabaseInterface {
 
   private async saveDatastoreEntryImpl<T>(dsInterface: DatastoreRequest | undefined, dbKey: string, votes: T) {
     const task = {
-      key: this.datastore.key([kDatastoreKind, dbKey]),
+      key: this.datastore.key([this.kDatastoreKind, dbKey]),
       data: votes
     };
     if (!dsInterface)
@@ -56,10 +54,21 @@ export class DatastoreConnector implements DatabaseInterface {
 
   private async readDatastoreEntryImpl<T>(dsInterface: DatastoreRequest, dbKey: string): Promise<T> {
     console.log('Querying data from Datastore');
-    const queryResult = await dsInterface.get(this.datastore.key([kDatastoreKind, dbKey]));
+    const queryResult = await dsInterface.get(this.datastore.key([this.kDatastoreKind, dbKey]));
     console.log(`Query result: ${JSON.stringify(queryResult)}`);
 
     return queryResult[0] as unknown as T;
   }
 }
 
+export class MessageVotesDatabase extends DatastoreConnector {
+  constructor() {
+    super('MessageVotes');
+  }
+}
+
+export class UserStatsDatabase extends DatastoreConnector {
+  constructor() {
+    super('UserStats');
+  }
+}

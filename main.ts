@@ -7,8 +7,8 @@ import TelegramBot from 'node-telegram-bot-api';
 
 import * as messages from "./config/config";
 import { setUpBotBehavior } from './behavior';
-import { DatastoreConnector } from './storage';
+import { MessageVotesDatabase } from './storage';
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
-setUpBotBehavior(bot,  new DatastoreConnector(), messages.getConfig());
+setUpBotBehavior(bot,  new MessageVotesDatabase(), messages.getConfig());
 
