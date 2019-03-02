@@ -4,8 +4,8 @@ import { MessageVotes, UserStats } from './util';
 
 export interface DatabaseInterface<T> {
   saveDatastoreEntry(dbKey: string, votes: T): void;
-  readDatastoreEntry(dbKey: string): Promise<T>;
-  updateDatastoreEntry(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined>
+  readDatastoreEntry(dbKey: string): Promise<T | undefined>;
+  updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => boolean): Promise<T | undefined>
 }
 
 class DatastoreConnector<T> implements DatabaseInterface<T> {
@@ -16,17 +16,17 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
     return this.saveDatastoreEntryImpl(this.datastore, dbKey, votes);
   }
 
-  public readDatastoreEntry(dbKey: string): Promise<T> {
+  public readDatastoreEntry(dbKey: string): Promise<T | undefined> {
     return this.readDatastoreEntryImpl(this.datastore, dbKey);
   }
 
-  public async updateDatastoreEntry(dbKey: string, modifier: (v: T) => boolean): Promise<T | undefined> {
+  public async updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => boolean): Promise<T | undefined> {
     for (let i = 0; i < this.maxRetries; ++i) {
       try {
         const transaction = this.datastore.transaction();
         await transaction.run();
         const votes = await this.readDatastoreEntryImpl(transaction, dbKey);
-        if (!modifier(votes)) {
+        if (!modifier(votes) || !votes) {
           await transaction.rollback();
           return undefined;
         }
@@ -53,12 +53,12 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
     await dsInterface.save(task);
   }
 
-  private async readDatastoreEntryImpl(dsInterface: DatastoreRequest, dbKey: string): Promise<T> {
+  private async readDatastoreEntryImpl(dsInterface: DatastoreRequest, dbKey: string): Promise<T | undefined> {
     console.log('Querying data from Datastore');
     const queryResult = await dsInterface.get(this.datastore.key([this.kDatastoreKind, dbKey]));
     console.log(`Query result: ${JSON.stringify(queryResult)}`);
 
-    return queryResult[0] as unknown as T;
+    return queryResult[0] == undefined ? undefined : queryResult[0] as unknown as T;
   }
 }
 

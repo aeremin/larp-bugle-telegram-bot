@@ -141,8 +141,9 @@ const kVotesToApproveOrReject = 2;
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
 async function processVotesUpdate(db: DatabaseInterface<MessageVotes>, dbKey: string, userId: number,
   modifier: string | undefined, votesToComplete: number): Promise<MessageVotes | undefined> {
-  return db.updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
+  return db.updateDatastoreEntry(dbKey, (votes: MessageVotes | undefined) => {
     const vote = stringToVote(modifier);
+    votes = votes || new MessageVotes();
     return vote != undefined && recalculateVotes(votes, userId, vote, votesToComplete);
   });
 }
