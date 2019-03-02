@@ -10,6 +10,9 @@ export const kModeratorChatId = 18;
 export const kModeratorChatMessageId = 27;
 export const kModeratorChatMessageDbKey = `${kModeratorChatId}_${kModeratorChatMessageId}`;
 
+export const kChannelId = 40;
+export const kChannelMessageId = 41;
+
 export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
   return {
     update_id: gUpdateId++,
@@ -56,7 +59,7 @@ export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Up
 }
 
 
-export function createVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+function createVoteUpdate(userId: number, messageId: number, chatId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
   return {
     update_id: gUpdateId++,
     callback_query: {
@@ -68,17 +71,25 @@ export function createVoteUpdate(userId: number, messageText: string, modifier: 
         first_name: ""
       },
       message: {
-        message_id: kModeratorChatMessageId,
+        message_id: messageId,
         date: new Date().valueOf(),
         text: messageText,
         chat: {
-          id: kModeratorChatId,
+          id: chatId,
           type: 'group'
         }
       },
       chat_instance: ""
     }
   };
+}
+
+export function createModeratorVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+  return createVoteUpdate(userId, kModeratorChatMessageId, kModeratorChatId, messageText, modifier);
+}
+
+export function createReaderVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+  return createVoteUpdate(userId, kChannelMessageId, kChannelId, messageText, modifier);
 }
 
 export function sleep(ms: number) {

@@ -1,7 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
 
-export const kVotesToApproveOrReject = 2;
-
 export function preprocessMessageBeforeApproval(messageText: string | undefined, tag: string | undefined): string {
   if (!messageText)
     messageText = '';
@@ -36,7 +34,7 @@ export class MessageVotes {
 
 export type Vote = '+' | '-';
 
-export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote): boolean {
+export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, maxVotes: number): boolean {
   if (votes.finished)
     return false;
   if (votes.disallowedToVote.includes(userId))
@@ -46,14 +44,14 @@ export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote
     if (!votes.votesFor.includes(userId)) {
       votes.votesFor.push(userId);
       votes.votesAgainst = votes.votesAgainst.filter(v => v != userId);
-      votes.finished = votes.votesFor.length >= kVotesToApproveOrReject;
+      votes.finished = votes.votesFor.length >= maxVotes;
       return true;
     }
   } else if (vote == '-') {
     if (!votes.votesAgainst.includes(userId)) {
       votes.votesAgainst.push(userId);
       votes.votesFor = votes.votesFor.filter(v => v != userId);
-      votes.finished = votes.votesAgainst.length >= kVotesToApproveOrReject;
+      votes.finished = votes.votesAgainst.length >= maxVotes;
       return true;
     }
   }

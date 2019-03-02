@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
-import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes, Vote } from './util';
+import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, recalculateVotes, Vote } from './util';
 import { DatabaseInterface } from './storage';
 import { BotConfig } from './config/config';
 
@@ -10,7 +10,7 @@ export function setUpBotBehavior(bot: TelegramBot, db: DatabaseInterface, config
 
   setUpReporterDialog(bot, db, config);
 
-  setUpModeratorsVoting(bot, db, config);
+  setUpVoting(bot, db, config);
 }
 
 function setUpPing(bot: TelegramBot) {
@@ -136,29 +136,43 @@ function stringToVote(s: string | undefined): Vote | undefined {
   return undefined;
 }
 
+const kVotesToApproveOrReject = 2;
+
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
-async function processVotesUpdate(db: DatabaseInterface, dbKey: string, userId: number, modifier: string | undefined): Promise<MessageVotes | undefined> {
+async function processVotesUpdate(db: DatabaseInterface, dbKey: string, userId: number,
+  modifier: string | undefined, votesToComplete: number): Promise<MessageVotes | undefined> {
   return db.updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
     const vote = stringToVote(modifier);
-    return vote != undefined && recalculateVotes(votes, userId, vote);
+    return vote != undefined && recalculateVotes(votes, userId, vote, votesToComplete);
   });
 }
 
-function setUpModeratorsVoting(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
+function setUpVoting(bot: TelegramBot, db: DatabaseInterface, config: BotConfig) {
   bot.on('callback_query', async (query) => {
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message)
       return;
 
+    const votesToComplete = query.message.chat.id == config.moderatorChatId ? kVotesToApproveOrReject : 1000000;
+
     const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
-    const maybeVotes = await processVotesUpdate(db, dbKey, query.from.id, query.data);
+
+    const maybeVotes = await processVotesUpdate(db, dbKey, query.from.id, query.data, votesToComplete);
+
     if (maybeVotes) {
-      if (maybeVotes.votesAgainst.length >= kVotesToApproveOrReject) {
+      if (maybeVotes.votesAgainst.length >= votesToComplete) {
         await anonymouslyForwardMessage(config.junkGroupId, query.message, {}, undefined, bot);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
-      } else if (maybeVotes.votesFor.length >= kVotesToApproveOrReject) {
-        await anonymouslyForwardMessage(config.newsChannelId, query.message, {}, undefined, bot);
+      } else if (maybeVotes.votesFor.length >= votesToComplete) {
+        const votesInChannel = new MessageVotes();
+        const res = await anonymouslyForwardMessage(config.newsChannelId, query.message,
+          { reply_markup: createVoteMarkup(votesInChannel)}, undefined, bot);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
+        if (!res) {
+          console.error('Failed to forward message!');
+          return;
+        }
+        await db.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votesInChannel);
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes),
           { chat_id: query.message.chat.id, message_id: query.message.message_id });
