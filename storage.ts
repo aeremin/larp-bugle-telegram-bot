@@ -26,15 +26,16 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
         const transaction = this.datastore.transaction();
         await transaction.run();
         const entity = await this.readDatastoreEntryImpl(transaction, dbKey);
-        if (!modifier(entity) || !entity) {
+        const updatedEntity = modifier(entity);
+        if (!updatedEntity) {
           await transaction.rollback();
           return undefined;
         }
-        await this.saveDatastoreEntryImpl(transaction, dbKey, entity);
+        await this.saveDatastoreEntryImpl(transaction, dbKey, updatedEntity);
         const commitResult = await transaction.commit();
         if (commitResult.length && commitResult[0].mutationResults.length &&
           !commitResult[0].mutationResults[0].conflictDetected)
-          return entity;
+          return updatedEntity;
         console.warn('Retrying because of conflict');
       } catch (e) {
         console.error(`Caught error: ${e}, let's retry`);
