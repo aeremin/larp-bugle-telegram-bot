@@ -107,20 +107,12 @@ function setUpReporterDialog(bot: TelegramBot, votesDb: DatabaseInterface<Messag
 
   bot.onText(/^\/no(.*)/, async (msg) => {
     if (!isPrivateMessage(msg)) return;
-    if (!msg.from) return;
 
     const chatId = msg.chat.id;
     const s = stateForReporter(msg);
     s.state = 'start';
     s.message = undefined;
     await bot.sendMessage(chatId, config.textMessages.ARTICLE_SEND_WAS_CANCELLED);
-
-    await statsDb.updateDatastoreEntry(dbKeyForUser(msg.from), (stats: UserStats | undefined) => {
-      stats = stats || new UserStats();
-      stats.articlesProposed++;
-      return stats;
-    });
-
     saveReporterState(msg, s);
   });
 
