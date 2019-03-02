@@ -34,19 +34,22 @@ export class MessageVotes {
   public finished = false;
 }
 
+export type Vote = '+' | '-';
 
-export function recalculateVotes(votes: MessageVotes, userId: number, modifier: string): boolean {
+export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote): boolean {
+  if (votes.finished)
+    return false;
   if (votes.disallowedToVote.includes(userId))
     return false;
 
-  if (modifier == '+') {
+  if (vote == '+') {
     if (!votes.votesFor.includes(userId)) {
       votes.votesFor.push(userId);
       votes.votesAgainst = votes.votesAgainst.filter(v => v != userId);
       votes.finished = votes.votesFor.length >= kVotesToApproveOrReject;
       return true;
     }
-  } else if (modifier == '-') {
+  } else if (vote == '-') {
     if (!votes.votesAgainst.includes(userId)) {
       votes.votesAgainst.push(userId);
       votes.votesFor = votes.votesFor.filter(v => v != userId);

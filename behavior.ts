@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
-import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes } from './util';
+import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, kVotesToApproveOrReject, recalculateVotes, Vote } from './util';
 import { DatabaseInterface } from './storage';
 import { BotConfig } from './config/config';
 
@@ -130,11 +130,17 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface, config: Bo
   bot.on('photo', articleHandler);
 }
 
+function stringToVote(s: string | undefined): Vote | undefined {
+  if (s == '+') return '+';
+  if (s == '-') return '-';
+  return undefined;
+}
 
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
 async function processVotesUpdate(db: DatabaseInterface, dbKey: string, userId: number, modifier: string | undefined): Promise<MessageVotes | undefined> {
   return db.updateDatastoreEntry(dbKey, (votes: MessageVotes) => {
-    return modifier != undefined && !votes.finished && recalculateVotes(votes, userId, modifier);
+    const vote = stringToVote(modifier);
+    return vote != undefined && recalculateVotes(votes, userId, vote);
   });
 }
 
