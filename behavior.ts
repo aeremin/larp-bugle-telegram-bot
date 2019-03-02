@@ -94,7 +94,7 @@ function setUpReporterDialog(bot: TelegramBot, votesDb: DatabaseInterface<Messag
       await statsDb.updateDatastoreEntry(dbKeyForUser(msg.from), (stats: UserStats | undefined) => {
         stats = stats || new UserStats();
         stats.articlesProposed++;
-        return true;
+        return stats;
       });
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
@@ -153,7 +153,10 @@ async function processVotesUpdate(db: DatabaseInterface<MessageVotes>, dbKey: st
   return db.updateDatastoreEntry(dbKey, (votes: MessageVotes | undefined) => {
     const vote = stringToVote(modifier);
     votes = votes || new MessageVotes();
-    return vote != undefined && recalculateVotes(votes, userId, vote, votesToComplete);
+    if (vote && recalculateVotes(votes, userId, vote, votesToComplete)) {
+      return votes;
+    }
+    return undefined;
   });
 }
 
@@ -179,7 +182,7 @@ function setUpVoting(bot: TelegramBot, votesDb: DatabaseInterface<MessageVotes>,
         } else {
           stats.votesAsReader++;
         }
-        return true;
+        return stats;
       });
 
       if (maybeVotes.votesAgainst.length >= votesToComplete) {

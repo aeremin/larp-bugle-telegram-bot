@@ -5,7 +5,7 @@ import { MessageVotes, UserStats } from './util';
 export interface DatabaseInterface<T> {
   saveDatastoreEntry(dbKey: string, entity: T): void;
   readDatastoreEntry(dbKey: string): Promise<T | undefined>;
-  updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => boolean): Promise<T | undefined>
+  updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => T | undefined): Promise<T | undefined>
 }
 
 class DatastoreConnector<T> implements DatabaseInterface<T> {
@@ -20,7 +20,7 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
     return this.readDatastoreEntryImpl(this.datastore, dbKey);
   }
 
-  public async updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => boolean): Promise<T | undefined> {
+  public async updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => T | undefined): Promise<T | undefined> {
     for (let i = 0; i < this.maxRetries; ++i) {
       try {
         const transaction = this.datastore.transaction();
