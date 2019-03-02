@@ -8,15 +8,20 @@ import { getConfig } from './config/config';
 import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, kModeratorChatMessageId, kModeratorChatId,
   createPrivateImageMessageUpdate, createModeratorVoteUpdate, createReaderVoteUpdate, kChannelId, kChannelMessageId } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { DatabaseInterface, MessageVotesDatabase } from './storage';
-import { MessageVotes } from './util';
+import { DatabaseInterface, MessageVotesDatabase, UserStatsDatabase } from './storage';
+import { MessageVotes, UserStats } from './util';
 import { expect } from 'chai';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
   let datastoreVotes: DatabaseInterface<MessageVotes> = new MessageVotesDatabase();
+  let datastoreStats: DatabaseInterface<UserStats> = new UserStatsDatabase();
+
   let botMocker: sinon.SinonMock;
-  let datastoreMocker: sinon.SinonMock;
+
+  let votesDatastoreMocker: sinon.SinonMock;
+  let statsDatastoreMocker: sinon.SinonMock;
+
   const kJunkGroupId = 20;
 
   beforeEach(() => {
@@ -24,8 +29,9 @@ describe('Behaviour test', () => {
     botMocker = sinon.mock(bot);
 
     testOnlyReset();
-    datastoreMocker = sinon.mock(datastoreVotes)
-    setUpBotBehavior(bot, datastoreVotes, {
+    votesDatastoreMocker = sinon.mock(datastoreVotes)
+    statsDatastoreMocker = sinon.mock(datastoreStats)
+    setUpBotBehavior(bot, datastoreVotes, datastoreStats, {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
       junkGroupId: kJunkGroupId,
@@ -35,7 +41,8 @@ describe('Behaviour test', () => {
 
   afterEach(() => {
     botMocker.verify();
-    datastoreMocker.verify();
+    votesDatastoreMocker.verify();
+    statsDatastoreMocker.verify();
   });
 
   describe('Reporter interaction', () => {
@@ -66,8 +73,9 @@ describe('Behaviour test', () => {
         const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
         expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
         const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
-        datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
+        votesDatastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
           sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
+        statsDatastoreMocker.expects("updateDatastoreEntry");
         bot.processUpdate(createPrivateMessageUpdate('/yes'));
         await microSleep();
         expectation.verify();
@@ -92,8 +100,9 @@ describe('Behaviour test', () => {
         const expectation = botMocker.expects("sendPhoto").withArgs(kModeratorChatId, sinon.match.any, sinon.match({ caption: 'Awesome picture'}));
         expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
         const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
-        datastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
+        votesDatastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
           sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
+        statsDatastoreMocker.expects("updateDatastoreEntry");
         bot.processUpdate(createPrivateMessageUpdate('/yes'));
         await microSleep();
         expectation.verify();
@@ -125,9 +134,10 @@ describe('Behaviour test', () => {
 
   describe('Moderator interaction', () => {
     it("Got positive votes, posting to news channel", async () => {
-      const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
-      datastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
+      const votes: MessageVotes = new MessageVotes();
+      votesDatastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
         (_: string, modifier) => modifier(votes) ? votes : undefined);
+      statsDatastoreMocker.expects("updateDatastoreEntry").twice();
 
       botMocker.expects("editMessageReplyMarkup").withExactArgs(sinon.match.any,
         { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
@@ -142,7 +152,7 @@ describe('Behaviour test', () => {
         .returns({ chat: { id: 999 }, message_id: 111 });
       botMocker.expects("deleteMessage").withArgs(kModeratorChatId, kModeratorChatMessageId.toString());
 
-      datastoreMocker.expects("saveDatastoreEntry").withArgs('999_111',
+      votesDatastoreMocker.expects("saveDatastoreEntry").withArgs('999_111',
         sinon.match({ disallowedToVote: [], finished: false, votesAgainst: [], votesFor: [] }));
 
       bot.processUpdate(createModeratorVoteUpdate(2, 'Good news article', '+'));
@@ -152,8 +162,9 @@ describe('Behaviour test', () => {
 
     it("Got negative votes, posting to junk group", async () => {
       const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
-      datastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
+      votesDatastoreMocker.expects('updateDatastoreEntry').twice().callsFake(
         (_: string, modifier) => modifier(votes) ? votes : undefined);
+      statsDatastoreMocker.expects("updateDatastoreEntry").twice();
 
       botMocker.expects("editMessageReplyMarkup").withExactArgs(sinon.match.any,
         { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
@@ -174,12 +185,13 @@ describe('Behaviour test', () => {
 
   describe('Reader interaction', () => {
     it("Many readers can vote", async () => {
-      const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
-      datastoreMocker.expects('updateDatastoreEntry').thrice().callsFake(
+      const votes: MessageVotes = new MessageVotes();
+      votesDatastoreMocker.expects('updateDatastoreEntry').thrice().callsFake(
         (_: string, modifier) => modifier(votes) ? votes : undefined);
       botMocker.expects("editMessageReplyMarkup").thrice().withExactArgs(sinon.match.any,
           { chat_id: kChannelId, message_id: kChannelMessageId });
       botMocker.expects("answerCallbackQuery").thrice();
+      statsDatastoreMocker.expects("updateDatastoreEntry").thrice();
 
       bot.processUpdate(createReaderVoteUpdate(1, 'Bad news article', '-'));
       expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });

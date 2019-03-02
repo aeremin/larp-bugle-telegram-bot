@@ -1,16 +1,19 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { saveReporterState, stateForReporter } from './reporter_state_machine';
-import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, recalculateVotes, Vote } from './util';
+import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, recalculateVotes, Vote, UserStats, dbKeyForUser } from './util';
 import { DatabaseInterface } from './storage';
 import { BotConfig } from './config/config';
 
-export function setUpBotBehavior(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, config: BotConfig) {
+export function setUpBotBehavior(bot: TelegramBot,
+    votesDb: DatabaseInterface<MessageVotes>,
+    statsDb: DatabaseInterface<UserStats>,
+    config: BotConfig) {
   setUpPing(bot);
   setUpDebugLogging(bot);
 
-  setUpReporterDialog(bot, db, config);
+  setUpReporterDialog(bot, votesDb, statsDb, config);
 
-  setUpVoting(bot, db, config);
+  setUpVoting(bot, votesDb, statsDb, config);
 }
 
 function setUpPing(bot: TelegramBot) {
@@ -44,7 +47,7 @@ function anonymouslyForwardMessage(chatId: number, msg: TelegramBot.Message, opt
   }
 }
 
-function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, config: BotConfig) {
+function setUpReporterDialog(bot: TelegramBot, votesDb: DatabaseInterface<MessageVotes>, statsDb: DatabaseInterface<UserStats>, config: BotConfig) {
   bot.onText(/^\/start(.*)/, async (msg) => {
     if (!isPrivateMessage(msg)) return;
     const chatId = msg.chat.id;
@@ -68,6 +71,7 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface<MessageVote
 
   bot.onText(/^\/yes(.*)/, async (msg) => {
     if (!isPrivateMessage(msg)) return;
+    if (!msg.from) return;
 
     const chatId = msg.chat.id;
     const s = stateForReporter(msg);
@@ -77,7 +81,7 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface<MessageVote
       await bot.sendMessage(chatId, config.textMessages.NEED_ARTICLE_TEXT);
     } else if (s.state == 'waiting_approval') {
       const votes = new MessageVotes();
-      if (msg.from && msg.from.username != 'aleremin') {
+      if (msg.from.username != 'aleremin') {
         votes.disallowedToVote.push(msg.from.id);
       }
       const res = await anonymouslyForwardMessage(config.moderatorChatId, s.message as TelegramBot.Message,
@@ -86,7 +90,12 @@ function setUpReporterDialog(bot: TelegramBot, db: DatabaseInterface<MessageVote
         console.error('Failed to forward message!');
         return;
       }
-      await db.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votes);
+      await votesDb.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votes);
+      await statsDb.updateDatastoreEntry(dbKeyForUser(msg.from), (stats: UserStats | undefined) => {
+        stats = stats || new UserStats();
+        stats.articlesProposed++;
+        return true;
+      });
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
       s.state = 'start';
@@ -148,19 +157,31 @@ async function processVotesUpdate(db: DatabaseInterface<MessageVotes>, dbKey: st
   });
 }
 
-function setUpVoting(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, config: BotConfig) {
+function setUpVoting(bot: TelegramBot, votesDb: DatabaseInterface<MessageVotes>, statsDb: DatabaseInterface<UserStats>, config: BotConfig) {
   bot.on('callback_query', async (query) => {
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message)
       return;
 
-    const votesToComplete = query.message.chat.id == config.moderatorChatId ? kVotesToApproveOrReject : 1000000;
+    const isModeratorVoting = query.message.chat.id == config.moderatorChatId;
+
+    const votesToComplete = isModeratorVoting ? kVotesToApproveOrReject : 1000000;
 
     const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
 
-    const maybeVotes = await processVotesUpdate(db, dbKey, query.from.id, query.data, votesToComplete);
+    const maybeVotes = await processVotesUpdate(votesDb, dbKey, query.from.id, query.data, votesToComplete);
 
     if (maybeVotes) {
+      await statsDb.updateDatastoreEntry(dbKeyForUser(query.from), (stats: UserStats | undefined) => {
+        stats = stats || new UserStats();
+        if (isModeratorVoting) {
+          stats.votesAsModerator++;
+        } else {
+          stats.votesAsReader++;
+        }
+        return true;
+      });
+
       if (maybeVotes.votesAgainst.length >= votesToComplete) {
         await anonymouslyForwardMessage(config.junkGroupId, query.message, {}, undefined, bot);
         await bot.deleteMessage(query.message.chat.id, query.message.message_id.toString());
@@ -173,7 +194,7 @@ function setUpVoting(bot: TelegramBot, db: DatabaseInterface<MessageVotes>, conf
           console.error('Failed to forward message!');
           return;
         }
-        await db.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votesInChannel);
+        await votesDb.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votesInChannel);
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes),
           { chat_id: query.message.chat.id, message_id: query.message.message_id });

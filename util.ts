@@ -32,7 +32,11 @@ export class MessageVotes {
   public finished = false;
 }
 
-export class UserStats {}
+export class UserStats {
+  public articlesProposed = 0;
+  public votesAsModerator = 0;
+  public votesAsReader = 0;
+}
 
 export type Vote = '+' | '-';
 
@@ -58,4 +62,8 @@ export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote
     }
   }
   return false;
+}
+
+export function dbKeyForUser(user: TelegramBot.User): string {
+  return `${user.id}_${user.username}`;
 }
