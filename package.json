@@ -20,6 +20,7 @@
     ],
     "exclude": [
       "coverage/",
+      "**/*.spec.ts",
       "**/*.d.ts"
     ],
     "reporter": [
