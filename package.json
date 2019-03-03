@@ -8,10 +8,22 @@
     "deps": "yarn install",
     "build": "tsc",
     "test:dev": "mocha -r ts-node/register **/*.spec.ts --watch-extensions ts",
-    "test": "mocha -r ts-node/register **/*.spec.ts --watch-extensions ts --forbid-only",
+    "test": "nyc mocha -r ts-node/register -r source-map-support/register --recursive **/*.spec.ts --watch-extensions ts --forbid-only",
     "test:watch": "mocha -r ts-node/register **/*.spec.ts --watch-extensions ts --forbid-only --watch",
     "start": "npm run build && forever start ./main.js",
     "stop": "forever stop ./main.js"
+  },
+  "nyc": {
+    "extension": [
+      ".ts"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "reporter": [
+      "json", "html"
+    ],
+    "all": true
   },
   "dependencies": {
     "@google-cloud/datastore": "2.0.0",
@@ -27,7 +39,9 @@
     "lodash": "^4.17.11",
     "mocha": "^6.0.2",
     "node-telegram-bot-api": "^0.30.0",
+    "nyc": "^13.3.0",
     "sinon": "^7.2.5",
+    "source-map-support": "^0.5.10",
     "ts-node": "^8.0.2"
   },
   "devDependencies": {
