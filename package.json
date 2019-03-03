@@ -9,6 +9,7 @@
     "build": "tsc",
     "test:dev": "mocha -r ts-node/register **/*.spec.ts --watch-extensions ts",
     "test": "nyc mocha -r ts-node/register -r source-map-support/register --recursive **/*.spec.ts --watch-extensions ts --forbid-only",
+    "posttest": "nyc report --reporter=json > coverage/coverage.json",
     "test:watch": "mocha -r ts-node/register **/*.spec.ts --watch-extensions ts --forbid-only --watch",
     "start": "npm run build && forever start ./main.js",
     "stop": "forever stop ./main.js"
@@ -18,6 +19,7 @@
       ".ts"
     ],
     "exclude": [
+      "coverage/",
       "**/*.d.ts"
     ],
     "reporter": [

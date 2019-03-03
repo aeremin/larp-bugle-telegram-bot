@@ -4,4 +4,4 @@ node_js:
 before_script:
   - npm i -g codecov
 after_success:
-  - codecov -f .nyc_output/*.json
+  - codecov -f coverage/*.json
