@@ -140,6 +140,15 @@ function setUpReporterDialog(bot: TelegramBot, votesDb: DatabaseInterface<Messag
 
   bot.onText(/^(.+)/, articleHandler);
   bot.on('photo', articleHandler);
+
+  bot.on('edited_message', async (msg) => {
+    if (!isPrivateMessage(msg)) return;
+    const s = stateForReporter(msg);
+    if (s.state != 'waiting_approval' || !s.message) return;
+    if (msg.message_id == s.message.message_id) {
+      s.message = msg;
+    }
+  });
 }
 
 function stringToVote(s: string | undefined): Vote | undefined {
