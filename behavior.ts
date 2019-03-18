@@ -31,6 +31,9 @@ function setUpDebugLogging(bot: TelegramBot) {
   bot.on('channel_post', async (msg) => {
     console.debug('channel_post: ' + JSON.stringify(msg));
   });
+  bot.on('edited_message', async (msg) => {
+    console.debug('edited_message: ' + JSON.stringify(msg));
+  });
 }
 
 function isPrivateMessage(msg: TelegramBot.Message): boolean {
