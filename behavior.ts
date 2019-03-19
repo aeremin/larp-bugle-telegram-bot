@@ -3,6 +3,7 @@ import { saveReporterState, stateForReporter } from './reporter_state_machine';
 import { preprocessMessageBeforeApproval, MessageVotes, createVoteMarkup, recalculateVotes, Vote, UserStats, dbKeyForUser } from './util';
 import { DatabaseInterface } from './storage';
 import { BotConfig } from './config/config';
+import { forwardMessageToVk } from './vk_helper';
 
 export function setUpBotBehavior(bot: TelegramBot,
     votesDb: DatabaseInterface<MessageVotes>,
@@ -209,6 +210,13 @@ function setUpVoting(bot: TelegramBot, votesDb: DatabaseInterface<MessageVotes>,
           console.error('Failed to forward message!');
           return;
         }
+
+        if (config.vkRepostConfig) {
+          const res2 = await forwardMessageToVk(config.vkRepostConfig.groupId, config.vkRepostConfig.accessToken,
+            bot, query.message);
+          console.log(res2);
+        }
+
         await votesDb.saveDatastoreEntry(`${res.chat.id}_${res.message_id}`, votesInChannel);
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes),
