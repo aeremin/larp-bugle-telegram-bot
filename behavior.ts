@@ -10,7 +10,7 @@ export function setUpBotBehavior(bot: TelegramBot,
     statsDb: DatabaseInterface<UserStats>,
     config: BotConfig) {
   setUpPing(bot);
-  setUpDebugLogging(bot, config);
+  setUpDebugLogging(bot);
 
   setUpReporterDialog(bot, votesDb, statsDb, config);
 
@@ -25,14 +25,9 @@ function setUpPing(bot: TelegramBot) {
   });
 }
 
-function setUpDebugLogging(bot: TelegramBot, config: BotConfig) {
+function setUpDebugLogging(bot: TelegramBot) {
   bot.on('message', async (msg) => {
     console.debug('message: ' + JSON.stringify(msg));
-    if (config.vkRepostConfig) {
-      const res2 = await forwardMessageToVk(config.vkRepostConfig.groupId, config.vkRepostConfig.accessToken,
-        bot, msg);
-      console.log(res2);
-    }
   });
   bot.on('channel_post', async (msg) => {
     console.debug('channel_post: ' + JSON.stringify(msg));
