@@ -26,7 +26,7 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
     const uploadResponse = await rp.post({
       url: getUploadServerResponse.response.upload_url,
       formData: {
-        "photo": rp.get(imgUrl)
+        photo: rp.get(imgUrl)
       },
       json: true
     });
