@@ -47,8 +47,11 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
 
   const attachmentsJoined = attachments.join(',');
 
-  return await rp.get({
-    url: getUrl('wall.post', `owner_id=-${groupId}&from_group=1&message=${encodeURIComponent(messageText)}&attachments=${attachmentsJoined}`),
+  return await rp.post({
+    url: getUrl('wall.post', `owner_id=-${groupId}&from_group=1&attachments=${attachmentsJoined}`),
+    formData: {
+      message: messageText
+    },
     json: true
   });
 }
