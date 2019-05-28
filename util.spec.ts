@@ -1,6 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
-import { preprocessMessageBeforeApproval, createVoteMarkup, MessageVotes, recalculateVotes } from './util';
+import { preprocessMessageBeforeApproval, createVoteMarkup, MessageVotes, recalculateVotes, extractFirstUrl } from './util';
 import lodash from 'lodash';
 
 describe('Utils tests', () => {
@@ -81,6 +81,27 @@ describe('Utils tests', () => {
       const success = recalculateVotes(maybeModifiedVotes, 2, '-', 2);
       expect(success).to.be.true;
       expect(maybeModifiedVotes).to.deep.equal({...votes, votesFor: [1, 3], votesAgainst: [4, 2], finished: true});
+    });
+  });
+
+
+  describe("extractFirstUrl", () => {
+    it("Can extract normal link", () => {
+      expect(
+        extractFirstUrl("Something whatever http://example.com/foo magic pony"))
+        .equals("http://example.com/foo");
+    });
+
+    it("Can extract link in parenthesis", () => {
+      expect(
+        extractFirstUrl("Something whatever (http://example.com/foo) magic pony"))
+        .equals("http://example.com/foo");
+    });
+
+    it("Can extract link in the end of line", () => {
+      expect(
+        extractFirstUrl("Something whatever http://example.com/foo"))
+        .equals("http://example.com/foo");
     });
   });
 });

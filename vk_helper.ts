@@ -1,5 +1,6 @@
 import * as rp from 'request-promise';
 import TelegramBot from 'node-telegram-bot-api';
+import { extractFirstUrl } from './util';
 
 export async function forwardMessageToVk(groupId: number, accessToken: string, bot: TelegramBot, msg: TelegramBot.Message) {
   const getUrl = (method: string, params: string) =>
@@ -8,11 +9,10 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
   const attachments: string[] = [];
 
   const messageText = msg.text || msg.caption || '';
-  const httpRe = /((http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?)/
-  const reMatch = messageText.match(httpRe);
-  if (reMatch) {
+  const maybeUrl = extractFirstUrl(messageText)
+  if (maybeUrl) {
     console.log('Matched!');
-    attachments.push(reMatch[0]);
+    attachments.push(maybeUrl);
     console.log(attachments);
   }
 

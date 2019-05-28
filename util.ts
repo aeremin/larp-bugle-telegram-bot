@@ -67,3 +67,13 @@ export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote
 export function dbKeyForUser(user: TelegramBot.User): string {
   return `${user.id}_${user.username}`;
 }
+
+export function extractFirstUrl(msg: string): string | undefined {
+  const httpRe = /(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?/;
+  const reMatch = msg.match(httpRe);
+  if (reMatch) {
+    return reMatch[0]
+  } else {
+    return undefined;
+  }
+}
