@@ -8,19 +8,21 @@ import { getConfig } from './config/config';
 import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, kModeratorChatMessageId, kModeratorChatId,
   createPrivateImageMessageUpdate, createModeratorVoteUpdate, createReaderVoteUpdate, kChannelId, kChannelMessageId } from './test_helpers';
 import { testOnlyReset } from './reporter_state_machine';
-import { DatabaseInterface, MessageVotesDatabase, UserStatsDatabase } from './storage';
-import { MessageVotes, UserStats } from './util';
+import { DatabaseInterface, MessageVotesDatabase, UserStatsDatabase, NewsArticlesDatabase } from './storage';
+import { MessageVotes, UserStats, NewsArticle } from './util';
 import { expect } from 'chai';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
   let datastoreVotes: DatabaseInterface<MessageVotes> = new MessageVotesDatabase();
   let datastoreStats: DatabaseInterface<UserStats> = new UserStatsDatabase();
+  let datastoreArticles: DatabaseInterface<NewsArticle> = new NewsArticlesDatabase();
 
   let botMocker: sinon.SinonMock;
 
   let votesDatastoreMocker: sinon.SinonMock;
   let statsDatastoreMocker: sinon.SinonMock;
+  let articlesDatastoreMocker: sinon.SinonMock;
 
   const kJunkGroupId = 20;
 
@@ -31,7 +33,8 @@ describe('Behaviour test', () => {
     testOnlyReset();
     votesDatastoreMocker = sinon.mock(datastoreVotes)
     statsDatastoreMocker = sinon.mock(datastoreStats)
-    setUpBotBehavior(bot, datastoreVotes, datastoreStats, {
+    articlesDatastoreMocker = sinon.mock(datastoreArticles)
+    setUpBotBehavior(bot, datastoreVotes, datastoreStats, datastoreArticles, {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
       junkGroupId: kJunkGroupId,
@@ -43,6 +46,7 @@ describe('Behaviour test', () => {
     botMocker.verify();
     votesDatastoreMocker.verify();
     statsDatastoreMocker.verify();
+    articlesDatastoreMocker.verify();
   });
 
   describe('Reporter interaction', () => {
@@ -76,6 +80,8 @@ describe('Behaviour test', () => {
         votesDatastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
           sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
         statsDatastoreMocker.expects("updateDatastoreEntry");
+        articlesDatastoreMocker.expects("saveDatastoreEntry").withArgs('13',
+          sinon.match({ submitterId: kUserId, submitterName: 'kool_xakep ( undefined)', wasPublished: false, text: 'Awesome news article: http://example.com'}));
         bot.processUpdate(createPrivateMessageUpdate('/yes'));
         await microSleep();
         expectation.verify();
@@ -103,6 +109,9 @@ describe('Behaviour test', () => {
         votesDatastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
           sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
         statsDatastoreMocker.expects("updateDatastoreEntry");
+        articlesDatastoreMocker.expects("saveDatastoreEntry").withArgs('13',
+          sinon.match({ submitterId: kUserId, submitterName: 'kool_xakep ( undefined)', wasPublished: false, text: 'Awesome picture'}));
+
         bot.processUpdate(createPrivateMessageUpdate('/yes'));
         await microSleep();
         expectation.verify();
@@ -154,6 +163,7 @@ describe('Behaviour test', () => {
 
       votesDatastoreMocker.expects("saveDatastoreEntry").withArgs('999_111',
         sinon.match({ disallowedToVote: [], finished: false, votesAgainst: [], votesFor: [] }));
+      articlesDatastoreMocker.expects("updateDatastoreEntry");
 
       bot.processUpdate(createModeratorVoteUpdate(2, 'Good news article', '+'));
       await microSleep();

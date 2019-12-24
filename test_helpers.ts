@@ -5,6 +5,7 @@ let gMessageId = 0;
 
 export const kPrivateChatId = 17;
 export const kUserId = 123;
+export const kUsername = "kool_xakep";
 
 export const kModeratorChatId = 18;
 export const kModeratorChatMessageId = 27;
@@ -20,7 +21,9 @@ export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
       from: {
         id: kUserId,
         is_bot: false,
-        first_name: ""
+        username: kUsername,
+        first_name: "",
+        last_name: undefined,
       },
       text,
       message_id: gMessageId++,
@@ -46,7 +49,9 @@ export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Up
       from: {
         id: kUserId,
         is_bot: false,
-        first_name: ""
+        username: kUsername,
+        first_name: "",
+        last_name: undefined,
       },
       message_id: gMessageId++,
       date: new Date().valueOf(),

@@ -50,6 +50,15 @@ export class UserStats {
   public votesAsReader = 0;
 }
 
+export interface NewsArticle {
+  // ID is the message_id in the moderator (!) chat.
+  submitterId: number;
+  submitterName: string;
+  submissionTime: Date;
+  wasPublished: boolean;
+  text: string;
+}
+
 export type Vote = '+' | '-';
 
 export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, maxVotes: number): boolean {

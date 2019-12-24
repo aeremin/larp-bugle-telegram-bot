@@ -1,6 +1,6 @@
 import Datastore from '@google-cloud/datastore'
 import { DatastoreRequest } from '@google-cloud/datastore/request';
-import { MessageVotes, UserStats } from './util';
+import { MessageVotes, UserStats, NewsArticle } from './util';
 
 export interface DatabaseInterface<T> {
   saveDatastoreEntry(dbKey: string, entity: T): Promise<void>;
@@ -72,5 +72,11 @@ export class MessageVotesDatabase extends DatastoreConnector<MessageVotes> {
 export class UserStatsDatabase extends DatastoreConnector<UserStats> {
   constructor() {
     super('UserStats');
+  }
+}
+
+export class NewsArticlesDatabase extends DatastoreConnector<NewsArticle> {
+  constructor() {
+    super('NewsArticle');
   }
 }
