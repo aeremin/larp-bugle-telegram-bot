@@ -40,6 +40,9 @@ export class MessageVotes {
 }
 
 export class UserStats {
+  // ID is {user_id}_{user_nickname}. Which is rather bad 
+  // as user nickname can change. Most probably user_nickname should
+  // go into separate field.
   public articlesProposed = 0;
   // Number of votes in the moderator chat.
   public votesAsModerator = 0;
