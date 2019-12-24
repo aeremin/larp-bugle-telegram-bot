@@ -26,15 +26,24 @@ export function createVoteMarkup(votes: MessageVotes): TelegramBot.InlineKeyboar
 }
 
 export class MessageVotes {
+  // ID is {chat_id}_{message_id}.
+  // Therefore there is no relation between message on moderation stage (in moderator's chat)
+  // and "same" message in public channel. Their votes  are completely separate.
   public votesFor: number[] = [];
   public votesAgainst: number[] = [];
+  
+  // At the moment only used to prevent moderators from submitting their post
+  // for moderation and (dis)approving it.
   public disallowedToVote: number[] = [];
+  
   public finished = false;
 }
 
 export class UserStats {
   public articlesProposed = 0;
+  // Number of votes in the moderator chat.
   public votesAsModerator = 0;
+  // Number of votes in public channel.
   public votesAsReader = 0;
 }
 
