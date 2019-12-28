@@ -1,5 +1,4 @@
-import Datastore from '@google-cloud/datastore'
-import { DatastoreRequest } from '@google-cloud/datastore/request';
+import { Datastore, DatastoreRequest } from '@google-cloud/datastore'
 import { MessageVotes, UserStats, NewsArticle } from './util';
 
 export interface DatabaseInterface<T> {
@@ -33,7 +32,7 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
         }
         await this.saveDatastoreEntryImpl(transaction, dbKey, updatedEntity);
         const commitResult = await transaction.commit();
-        if (commitResult.length && commitResult[0].mutationResults.length &&
+        if (commitResult.length && commitResult[0].mutationResults && commitResult[0].mutationResults.length &&
           !commitResult[0].mutationResults[0].conflictDetected)
           return updatedEntity;
         console.warn('Retrying because of conflict');
