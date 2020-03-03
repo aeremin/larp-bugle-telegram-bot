@@ -217,7 +217,7 @@ function stringToVote(s: string | undefined): Vote | undefined {
   return undefined;
 }
 
-const kVotesToApproveOrReject = 2;
+const kVotesToApproveOrReject = 3;
 
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
 async function processVotesUpdate(
