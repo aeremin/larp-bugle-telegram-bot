@@ -217,7 +217,8 @@ function stringToVote(s: string | undefined): Vote | undefined {
   return undefined;
 }
 
-const kVotesToApproveOrReject = 3;
+const kVotesToApprove = 2;
+const kVotesToReject = 3;
 
 // Returns undefined iff failed to update votes (user already participated in the vote, vote cancelled, ...).
 async function processVotesUpdate(
@@ -225,12 +226,12 @@ async function processVotesUpdate(
   dbKey: string,
   userId: number,
   modifier: string | undefined,
-  votesToComplete: number
+  votesLimits: {votesToApprove: number, votesToReject: number}
 ): Promise<MessageVotes | undefined> {
   return db.updateDatastoreEntry(dbKey, (votes: MessageVotes | undefined) => {
     const vote = stringToVote(modifier);
     votes = votes || new MessageVotes();
-    if (vote && recalculateVotes(votes, userId, vote, votesToComplete)) {
+    if (vote && recalculateVotes(votes, userId, vote, votesLimits)) {
       return votes;
     }
     return undefined;
@@ -250,9 +251,14 @@ function setUpVoting(
 
     const isModeratorVoting = query.message.chat.id == config.moderatorChatId;
 
-    const votesToComplete = isModeratorVoting
-      ? kVotesToApproveOrReject
+    const votesToApprove = isModeratorVoting
+      ? kVotesToApprove
       : 1000000;
+
+    const votesToReject = isModeratorVoting
+      ? kVotesToReject
+      : 1000000;
+
 
     const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
 
@@ -261,7 +267,7 @@ function setUpVoting(
       dbKey,
       query.from.id,
       query.data,
-      votesToComplete
+      {votesToApprove, votesToReject},
     );
 
     if (maybeVotes) {
@@ -278,7 +284,7 @@ function setUpVoting(
         }
       );
 
-      if (maybeVotes.votesAgainst.length >= votesToComplete) {
+      if (maybeVotes.votesAgainst.length >= votesToReject) {
         await anonymouslyForwardMessage(
           config.junkGroupId,
           query.message,
@@ -290,7 +296,7 @@ function setUpVoting(
           query.message.chat.id,
           query.message.message_id.toString()
         );
-      } else if (maybeVotes.votesFor.length >= votesToComplete) {
+      } else if (maybeVotes.votesFor.length >= votesToApprove) {
         const votesInChannel = new MessageVotes();
         const res = await anonymouslyForwardMessage(
           config.newsChannelId,

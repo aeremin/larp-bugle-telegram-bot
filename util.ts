@@ -31,16 +31,16 @@ export class MessageVotes {
   // and "same" message in public channel. Their votes  are completely separate.
   public votesFor: number[] = [];
   public votesAgainst: number[] = [];
-  
+
   // At the moment only used to prevent moderators from submitting their post
   // for moderation and (dis)approving it.
   public disallowedToVote: number[] = [];
-  
+
   public finished = false;
 }
 
 export class UserStats {
-  // ID is {user_id}_{user_nickname}. Which is rather bad 
+  // ID is {user_id}_{user_nickname}. Which is rather bad
   // as user nickname can change. Most probably user_nickname should
   // go into separate field.
   public articlesProposed = 0;
@@ -61,7 +61,7 @@ export interface NewsArticle {
 
 export type Vote = '+' | '-';
 
-export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, maxVotes: number): boolean {
+export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, votesLimits: {votesToApprove: number, votesToReject: number}): boolean {
   if (votes.finished)
     return false;
   if (votes.disallowedToVote.includes(userId))
@@ -71,14 +71,14 @@ export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote
     if (!votes.votesFor.includes(userId)) {
       votes.votesFor.push(userId);
       votes.votesAgainst = votes.votesAgainst.filter(v => v != userId);
-      votes.finished = votes.votesFor.length >= maxVotes;
+      votes.finished = votes.votesFor.length >= votesLimits.votesToApprove;
       return true;
     }
   } else if (vote == '-') {
     if (!votes.votesAgainst.includes(userId)) {
       votes.votesAgainst.push(userId);
       votes.votesFor = votes.votesFor.filter(v => v != userId);
-      votes.finished = votes.votesAgainst.length >= maxVotes;
+      votes.finished = votes.votesAgainst.length >= votesLimits.votesToReject;
       return true;
     }
   }
