@@ -1,5 +1,5 @@
-import * as normal from "./normal";
 import * as gdesra4 from "./gdesra4";
+import * as normal from "./normal";
 
 export type VkRepostConfig = {
   groupId: number,
@@ -20,7 +20,7 @@ function getVkRepostConfig(): VkRepostConfig | undefined {
     return {
       groupId: Number(process.env.VK_GROUP_ID),
       accessToken: process.env.VK_ACCESS_TOKEN,
-    }
+    };
   }
   return undefined;
 }
@@ -31,18 +31,18 @@ export function getConfig(): BotConfig {
     newsChannelId: Number(process.env.TELEGRAM_BOT_NEWS_CHANNEL_ID),
     junkGroupId: Number(process.env.TELEGRAM_BOT_JUNK_CHANNEL_ID),
     vkRepostConfig: getVkRepostConfig(),
-  }
+  };
   if (process.env.CONFIG_MODE === "gdesra4") {
     return {
-        ...commonConfig,
-        textMessages: gdesra4.getMessages(),
-        tag: "#ПодгонАнонимуса",
+      ...commonConfig,
+      textMessages: gdesra4.getMessages(),
+      tag: "#ПодгонАнонимуса",
     };
   } else {
     return {
-        ...commonConfig,
-        textMessages: normal.getMessages(),
-        tag: undefined,
+      ...commonConfig,
+      textMessages: normal.getMessages(),
+      tag: undefined,
     };
   }
 }

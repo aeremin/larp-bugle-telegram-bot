@@ -63,7 +63,6 @@ export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Up
   };
 }
 
-
 function createVoteUpdate(userId: number, messageId: number, chatId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
   return {
     update_id: gUpdateId++,

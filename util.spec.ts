@@ -1,7 +1,13 @@
-import 'mocha';
-import { expect } from 'chai';
-import { preprocessMessageBeforeApproval, createVoteMarkup, MessageVotes, recalculateVotes, extractFirstUrl } from './util';
+import {expect} from 'chai';
 import lodash from 'lodash';
+import 'mocha';
+import {
+  createVoteMarkup,
+  extractFirstUrl,
+  MessageVotes,
+  preprocessMessageBeforeApproval,
+  recalculateVotes
+} from './util';
 
 describe('Utils tests', () => {
   describe('preprocessMessageBeforeApproval', () => {
@@ -16,7 +22,12 @@ describe('Utils tests', () => {
 
   describe('createVoteMarkup', () => {
     it('Returns 2 buttons with proper numbers', () => {
-      const keyboard = createVoteMarkup({votesFor: [1, 2, 3], votesAgainst: [4], disallowedToVote: [], finished: false}).inline_keyboard;
+      const keyboard = createVoteMarkup({
+        votesFor: [1, 2, 3],
+        votesAgainst: [4],
+        disallowedToVote: [],
+        finished: false
+      }).inline_keyboard;
       expect(keyboard).lengthOf(1);
       const buttons = keyboard[0];
       expect(buttons).lengthOf(2);
@@ -32,7 +43,7 @@ describe('Utils tests', () => {
 
   // TODO: Add better tests for votes.finished calculation
   describe('recalculateVotes', () => {
-    const votes: MessageVotes = {votesFor: [1, 2, 3], votesAgainst: [4], disallowedToVote: [6, 7], finished: false}
+    const votes: MessageVotes = {votesFor: [1, 2, 3], votesAgainst: [4], disallowedToVote: [6, 7], finished: false};
 
     it("Returns false and doesn't modify votes if disallowed to vote", () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
@@ -83,7 +94,6 @@ describe('Utils tests', () => {
       expect(maybeModifiedVotes).to.deep.equal({...votes, votesFor: [1, 3], votesAgainst: [4, 2], finished: true});
     });
   });
-
 
   describe("extractFirstUrl", () => {
     it("Can extract normal link", () => {

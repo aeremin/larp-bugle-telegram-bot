@@ -1,7 +1,7 @@
 {
   "name": "larp-bugle-telegram-bot",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.js",
   "author": "Alexey Eremin <a.eremin.msu@gmail.com>",
   "license": "MIT",
   "scripts": {

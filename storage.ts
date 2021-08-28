@@ -1,15 +1,19 @@
-import { Datastore, DatastoreRequest } from '@google-cloud/datastore'
-import { MessageVotes, UserStats, NewsArticle } from './util';
+import {Datastore, DatastoreRequest} from '@google-cloud/datastore';
+import {MessageVotes, NewsArticle, UserStats} from './util';
 
 export interface DatabaseInterface<T> {
   saveDatastoreEntry(dbKey: string, entity: T): Promise<void>;
+
   readDatastoreEntry(dbKey: string): Promise<T | undefined>;
-  updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => T | undefined): Promise<T | undefined>
+
+  updateDatastoreEntry(dbKey: string, modifier: (v: T | undefined) => T | undefined): Promise<T | undefined>;
 }
 
 class DatastoreConnector<T> implements DatabaseInterface<T> {
   private datastore = new Datastore();
-  constructor(private readonly kDatastoreKind: string, private maxRetries: number = 10) { }
+
+  constructor(private readonly kDatastoreKind: string, private maxRetries: number = 10) {
+  }
 
   public saveDatastoreEntry(dbKey: string, entity: T) {
     return this.saveDatastoreEntryImpl(this.datastore, dbKey, entity);

@@ -8,7 +8,8 @@ class ReporterStateAndMessage {
 }
 
 // TODO: Add persistance?
-const gReporterStates = new Map<number, ReporterStateAndMessage>();;
+const gReporterStates = new Map<number, ReporterStateAndMessage>();
+;
 
 export function stateForReporter(msg: TelegramBot.Message): ReporterStateAndMessage {
   return gReporterStates.get((msg.from as TelegramBot.User).id) || new ReporterStateAndMessage();

@@ -1,15 +1,15 @@
-import * as rp from 'request-promise';
 import TelegramBot from 'node-telegram-bot-api';
-import { extractFirstUrl } from './util';
+import * as rp from 'request-promise';
+import {extractFirstUrl} from './util';
 
 export async function forwardMessageToVk(groupId: number, accessToken: string, bot: TelegramBot, msg: TelegramBot.Message) {
   const getUrl = (method: string, params: string) =>
-    `https://api.vk.com/method/${method}?access_token=${accessToken}&v=5.92&${params}`
+    `https://api.vk.com/method/${method}?access_token=${accessToken}&v=5.92&${params}`;
 
   const attachments: string[] = [];
 
   const messageText = msg.text || msg.caption || '';
-  const maybeUrl = extractFirstUrl(messageText)
+  const maybeUrl = extractFirstUrl(messageText);
   if (maybeUrl) {
     console.log('Matched!');
     attachments.push(maybeUrl);
@@ -18,7 +18,7 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
 
   if (msg.photo) {
     const getUploadServerResponse =
-      await rp.get({ url: getUrl('photos.getWallUploadServer', `group_id=${groupId}`), json: true });
+      await rp.get({url: getUrl('photos.getWallUploadServer', `group_id=${groupId}`), json: true});
 
     console.log(getUploadServerResponse);
 

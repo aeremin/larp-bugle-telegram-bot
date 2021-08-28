@@ -1,18 +1,18 @@
 import TelegramBot from "node-telegram-bot-api";
-import { saveReporterState, stateForReporter } from "./reporter_state_machine";
+import {BotConfig} from "./config/config";
+import {saveReporterState, stateForReporter} from "./reporter_state_machine";
+import {DatabaseInterface} from "./storage";
 import {
-  preprocessMessageBeforeApproval,
-  MessageVotes,
   createVoteMarkup,
-  recalculateVotes,
-  Vote,
-  UserStats,
   dbKeyForUser,
-  NewsArticle
+  MessageVotes,
+  NewsArticle,
+  preprocessMessageBeforeApproval,
+  recalculateVotes,
+  UserStats,
+  Vote
 } from "./util";
-import { DatabaseInterface } from "./storage";
-import { BotConfig } from "./config/config";
-import { forwardMessageToVk } from "./vk_helper";
+import {forwardMessageToVk} from "./vk_helper";
 
 export function setUpBotBehavior(
   bot: TelegramBot,
@@ -123,7 +123,7 @@ function setUpReporterDialog(
       const res = await anonymouslyForwardMessage(
         config.moderatorChatId,
         s.message as TelegramBot.Message,
-        { reply_markup: createVoteMarkup(votes) },
+        {reply_markup: createVoteMarkup(votes)},
         config.tag,
         bot
       );
@@ -226,7 +226,7 @@ async function processVotesUpdate(
   dbKey: string,
   userId: number,
   modifier: string | undefined,
-  votesLimits: {votesToApprove: number, votesToReject: number}
+  votesLimits: { votesToApprove: number, votesToReject: number }
 ): Promise<MessageVotes | undefined> {
   return db.updateDatastoreEntry(dbKey, (votes: MessageVotes | undefined) => {
     const vote = stringToVote(modifier);
@@ -258,7 +258,6 @@ function setUpVoting(
     const votesToReject = isModeratorVoting
       ? kVotesToReject
       : 1000000;
-
 
     const dbKey = `${query.message.chat.id}_${query.message.message_id}`;
 
@@ -301,7 +300,7 @@ function setUpVoting(
         const res = await anonymouslyForwardMessage(
           config.newsChannelId,
           query.message,
-          { reply_markup: createVoteMarkup(votesInChannel) },
+          {reply_markup: createVoteMarkup(votesInChannel)},
           undefined,
           bot
         );

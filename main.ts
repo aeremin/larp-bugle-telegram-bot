@@ -1,14 +1,17 @@
 import * as dotenv from 'dotenv';
+import TelegramBot from 'node-telegram-bot-api';
+import {setUpBotBehavior} from './behavior';
+
+import * as messages from "./config/config";
+import {MessageVotesDatabase, NewsArticlesDatabase, UserStatsDatabase} from './storage';
+
 dotenv.config();
 
 // See https://github.com/yagop/node-telegram-bot-api/issues/319
-process.env.NTBA_FIX_319 = "X"
-import TelegramBot from 'node-telegram-bot-api';
+process.env.NTBA_FIX_319 = "X";
 
-import * as messages from "./config/config";
-import { setUpBotBehavior } from './behavior';
-import { MessageVotesDatabase, UserStatsDatabase, NewsArticlesDatabase } from './storage';
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN!, { polling: true });
+setUpBotBehavior(bot, new MessageVotesDatabase(), new UserStatsDatabase(), new NewsArticlesDatabase(), messages.getConfig());
 
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN as string, { polling: true });
-setUpBotBehavior(bot,  new MessageVotesDatabase(), new UserStatsDatabase(), new NewsArticlesDatabase(), messages.getConfig());
+
 

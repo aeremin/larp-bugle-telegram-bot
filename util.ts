@@ -22,7 +22,7 @@ export function createVoteMarkup(votes: MessageVotes): TelegramBot.InlineKeyboar
         callback_data: '-',
       },
     ]],
-  }
+  };
 }
 
 export class MessageVotes {
@@ -61,7 +61,7 @@ export interface NewsArticle {
 
 export type Vote = '+' | '-';
 
-export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, votesLimits: {votesToApprove: number, votesToReject: number}): boolean {
+export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote, votesLimits: { votesToApprove: number, votesToReject: number }): boolean {
   if (votes.finished)
     return false;
   if (votes.disallowedToVote.includes(userId))
@@ -93,7 +93,7 @@ export function extractFirstUrl(msg: string): string | undefined {
   const httpRe = /(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?/;
   const reMatch = msg.match(httpRe);
   if (reMatch) {
-    return reMatch[0]
+    return reMatch[0];
   } else {
     return undefined;
   }

@@ -1,16 +1,27 @@
 process.env.TELEGRAM_BOT_MODERATOR_CHAT_ID = "129";
 
+import {expect} from 'chai';
 import 'mocha';
-import sinon from 'sinon';
 import TelegramBot from 'node-telegram-bot-api';
-import { setUpBotBehavior } from './behavior';
-import { getConfig } from './config/config';
-import { createPrivateMessageUpdate, sleep, kPrivateChatId, microSleep, kUserId, kModeratorChatMessageId, kModeratorChatId,
-  createPrivateImageMessageUpdate, createModeratorVoteUpdate, createReaderVoteUpdate, kChannelId, kChannelMessageId } from './test_helpers';
-import { testOnlyReset } from './reporter_state_machine';
-import { DatabaseInterface, MessageVotesDatabase, UserStatsDatabase, NewsArticlesDatabase } from './storage';
-import { MessageVotes, UserStats, NewsArticle } from './util';
-import { expect } from 'chai';
+import sinon from 'sinon';
+import {setUpBotBehavior} from './behavior';
+import {getConfig} from './config/config';
+import {testOnlyReset} from './reporter_state_machine';
+import {DatabaseInterface, MessageVotesDatabase, NewsArticlesDatabase, UserStatsDatabase} from './storage';
+import {
+  createModeratorVoteUpdate,
+  createPrivateImageMessageUpdate,
+  createPrivateMessageUpdate,
+  createReaderVoteUpdate,
+  kChannelId,
+  kChannelMessageId,
+  kModeratorChatId,
+  kModeratorChatMessageId,
+  kPrivateChatId,
+  kUserId,
+  microSleep
+} from './test_helpers';
+import {MessageVotes, NewsArticle, UserStats} from './util';
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
@@ -27,13 +38,13 @@ describe('Behaviour test', () => {
   const kJunkGroupId = 20;
 
   beforeEach(() => {
-    bot = new TelegramBot("111", { polling: false });
+    bot = new TelegramBot("111", {polling: false});
     botMocker = sinon.mock(bot);
 
     testOnlyReset();
-    votesDatastoreMocker = sinon.mock(datastoreVotes)
-    statsDatastoreMocker = sinon.mock(datastoreStats)
-    articlesDatastoreMocker = sinon.mock(datastoreArticles)
+    votesDatastoreMocker = sinon.mock(datastoreVotes);
+    statsDatastoreMocker = sinon.mock(datastoreStats);
+    articlesDatastoreMocker = sinon.mock(datastoreArticles);
     setUpBotBehavior(bot, datastoreVotes, datastoreStats, datastoreArticles, {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
@@ -75,13 +86,18 @@ describe('Behaviour test', () => {
       await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
-        expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
+        expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
         const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
         votesDatastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
-          sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
+          sinon.match({disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: []}));
         statsDatastoreMocker.expects("updateDatastoreEntry");
         articlesDatastoreMocker.expects("saveDatastoreEntry").withArgs('13',
-          sinon.match({ submitterId: kUserId, submitterName: 'kool_xakep ( undefined)', wasPublished: false, text: 'Awesome news article: http://example.com'}));
+          sinon.match({
+            submitterId: kUserId,
+            submitterName: 'kool_xakep ( undefined)',
+            wasPublished: false,
+            text: 'Awesome news article: http://example.com'
+          }));
         bot.processUpdate(createPrivateMessageUpdate('/yes'));
         await microSleep();
         expectation.verify();
@@ -103,14 +119,19 @@ describe('Behaviour test', () => {
       }
       await microSleep();
       {
-        const expectation = botMocker.expects("sendPhoto").withArgs(kModeratorChatId, sinon.match.any, sinon.match({ caption: 'Awesome picture'}));
-        expectation.returns({ chat: { id: kModeratorChatId }, message_id: 13 });
+        const expectation = botMocker.expects("sendPhoto").withArgs(kModeratorChatId, sinon.match.any, sinon.match({caption: 'Awesome picture'}));
+        expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
         const expectation2 = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/отправлена/));
         votesDatastoreMocker.expects("saveDatastoreEntry").withArgs(`${kModeratorChatId}_13`,
-          sinon.match({ disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: [] }));
+          sinon.match({disallowedToVote: [kUserId], finished: false, votesAgainst: [], votesFor: []}));
         statsDatastoreMocker.expects("updateDatastoreEntry");
         articlesDatastoreMocker.expects("saveDatastoreEntry").withArgs('13',
-          sinon.match({ submitterId: kUserId, submitterName: 'kool_xakep ( undefined)', wasPublished: false, text: 'Awesome picture'}));
+          sinon.match({
+            submitterId: kUserId,
+            submitterName: 'kool_xakep ( undefined)',
+            wasPublished: false,
+            text: 'Awesome picture'
+          }));
 
         bot.processUpdate(createPrivateMessageUpdate('/yes'));
         await microSleep();
@@ -149,51 +170,51 @@ describe('Behaviour test', () => {
       statsDatastoreMocker.expects("updateDatastoreEntry").twice();
 
       botMocker.expects("editMessageReplyMarkup").once().withExactArgs(sinon.match.any,
-        { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
+        {chat_id: kModeratorChatId, message_id: kModeratorChatMessageId});
       botMocker.expects("answerCallbackQuery").twice();
 
       bot.processUpdate(createModeratorVoteUpdate(1, 'Good news article', '+'));
       await microSleep();
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [1], votesAgainst: [], finished: false });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [1], votesAgainst: [], finished: false});
 
       botMocker.expects("sendMessage")
-        .withArgs(kChannelId, sinon.match('Good news article'), sinon.match({ reply_markup: {} }))
-        .returns({ chat: { id: 999 }, message_id: 111 });
+        .withArgs(kChannelId, sinon.match('Good news article'), sinon.match({reply_markup: {}}))
+        .returns({chat: {id: 999}, message_id: 111});
       botMocker.expects("deleteMessage").withArgs(kModeratorChatId, kModeratorChatMessageId.toString());
 
       votesDatastoreMocker.expects("saveDatastoreEntry").withArgs('999_111',
-        sinon.match({ disallowedToVote: [], finished: false, votesAgainst: [], votesFor: [] }));
+        sinon.match({disallowedToVote: [], finished: false, votesAgainst: [], votesFor: []}));
       articlesDatastoreMocker.expects("updateDatastoreEntry");
 
       bot.processUpdate(createModeratorVoteUpdate(2, 'Good news article', '+'));
       await microSleep();
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [1, 2], votesAgainst: [], finished: true });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [1, 2], votesAgainst: [], finished: true});
     });
 
     it("Got negative votes, posting to junk group", async () => {
-      const votes: MessageVotes = { disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false };
+      const votes: MessageVotes = {disallowedToVote: [], votesFor: [], votesAgainst: [], finished: false};
       votesDatastoreMocker.expects('updateDatastoreEntry').thrice().callsFake(
         (_: string, modifier) => modifier(votes) ? votes : undefined);
       statsDatastoreMocker.expects("updateDatastoreEntry").thrice();
 
       botMocker.expects("editMessageReplyMarkup").twice().withExactArgs(sinon.match.any,
-        { chat_id: kModeratorChatId, message_id: kModeratorChatMessageId });
+        {chat_id: kModeratorChatId, message_id: kModeratorChatMessageId});
       botMocker.expects("answerCallbackQuery").thrice();
 
       bot.processUpdate(createModeratorVoteUpdate(1, 'Bad news article', '-'));
       await microSleep();
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false});
 
       botMocker.expects("sendMessage").withArgs(kJunkGroupId, sinon.match('Bad news article'));
       botMocker.expects("deleteMessage").withArgs(kModeratorChatId, kModeratorChatMessageId.toString());
 
       bot.processUpdate(createModeratorVoteUpdate(2, 'Bad news article', '-'));
       await microSleep();
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false});
 
       bot.processUpdate(createModeratorVoteUpdate(3, 'Bad news article', '-'));
       await microSleep();
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: true });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: true});
     });
   });
 
@@ -203,18 +224,18 @@ describe('Behaviour test', () => {
       votesDatastoreMocker.expects('updateDatastoreEntry').thrice().callsFake(
         (_: string, modifier) => modifier(votes) ? votes : undefined);
       botMocker.expects("editMessageReplyMarkup").thrice().withExactArgs(sinon.match.any,
-          { chat_id: kChannelId, message_id: kChannelMessageId });
+        {chat_id: kChannelId, message_id: kChannelMessageId});
       botMocker.expects("answerCallbackQuery").thrice();
       statsDatastoreMocker.expects("updateDatastoreEntry").thrice();
 
       bot.processUpdate(createReaderVoteUpdate(1, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false});
 
       bot.processUpdate(createReaderVoteUpdate(2, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false });
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false});
 
       bot.processUpdate(createReaderVoteUpdate(3, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: false });
-    })
+      expect(votes).to.deep.equal({disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: false});
+    });
   });
 });
