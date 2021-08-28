@@ -98,3 +98,10 @@ export function extractFirstUrl(msg: string): string | undefined {
     return undefined;
   }
 }
+
+type ReporterState = 'start' | 'waiting_message' | 'waiting_approval';
+
+export interface ReporterStateAndMessage {
+  state: ReporterState;
+  message?: TelegramBot.Message;
+}

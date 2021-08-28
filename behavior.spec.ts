@@ -6,8 +6,13 @@ import TelegramBot from 'node-telegram-bot-api';
 import sinon from 'sinon';
 import {setUpBotBehavior} from './behavior';
 import {getConfig} from './config/config';
-import {testOnlyReset} from './reporter_state_machine';
-import {DatabaseInterface, MessageVotesDatabase, NewsArticlesDatabase, UserStatsDatabase} from './storage';
+import {
+  DatabaseInterface,
+  MessageVotesDatabase,
+  NewsArticlesDatabase,
+  ReporterStateDatabase,
+  UserStatsDatabase
+} from './storage';
 import {
   createModeratorVoteUpdate,
   createPrivateImageMessageUpdate,
@@ -21,7 +26,23 @@ import {
   kUserId,
   microSleep
 } from './test_helpers';
-import {MessageVotes, NewsArticle, UserStats} from './util';
+import {MessageVotes, NewsArticle, ReporterStateAndMessage, UserStats} from './util';
+
+class InMemoryReporterState implements DatabaseInterface<ReporterStateAndMessage> {
+  private storage: {[key: string]: ReporterStateAndMessage} = {};
+
+  public async readDatastoreEntry(dbKey: string): Promise<ReporterStateAndMessage | undefined> {
+    return this.storage[dbKey];
+  }
+
+  public async saveDatastoreEntry(dbKey: string, entity: ReporterStateAndMessage): Promise<void> {
+    this.storage[dbKey] = entity;
+  }
+
+  public async updateDatastoreEntry(dbKey: string, modifier: (v: (ReporterStateAndMessage | undefined)) => (ReporterStateAndMessage | undefined)): Promise<ReporterStateAndMessage | undefined> {
+    throw new Error('not implemented');
+  }
+}
 
 describe('Behaviour test', () => {
   let bot: TelegramBot;
@@ -41,11 +62,10 @@ describe('Behaviour test', () => {
     bot = new TelegramBot("111", {polling: false});
     botMocker = sinon.mock(bot);
 
-    testOnlyReset();
     votesDatastoreMocker = sinon.mock(datastoreVotes);
     statsDatastoreMocker = sinon.mock(datastoreStats);
     articlesDatastoreMocker = sinon.mock(datastoreArticles);
-    setUpBotBehavior(bot, datastoreVotes, datastoreStats, datastoreArticles, {
+    setUpBotBehavior(bot, datastoreVotes, datastoreStats, datastoreArticles, new InMemoryReporterState(), {
       ...getConfig(),
       moderatorChatId: kModeratorChatId,
       junkGroupId: kJunkGroupId,
@@ -75,15 +95,15 @@ describe('Behaviour test', () => {
       {
         const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
         bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+        await microSleep();
         expectation.verify();
       }
-      await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
         bot.processUpdate(createPrivateMessageUpdate('Awesome news article: http://example.com'));
+        await microSleep();
         expectation.verify();
       }
-      await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withArgs(kModeratorChatId, sinon.match('Awesome news article: http://example.com'));
         expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
@@ -109,15 +129,15 @@ describe('Behaviour test', () => {
       {
         const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
         bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+        await microSleep();
         expectation.verify();
       }
-      await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
         bot.processUpdate(createPrivateImageMessageUpdate('Awesome picture'));
+        await microSleep();
         expectation.verify();
       }
-      await microSleep();
       {
         const expectation = botMocker.expects("sendPhoto").withArgs(kModeratorChatId, sinon.match.any, sinon.match({caption: 'Awesome picture'}));
         expectation.returns({chat: {id: kModeratorChatId}, message_id: 13});
@@ -144,15 +164,15 @@ describe('Behaviour test', () => {
       {
         const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/Кидай текст/));
         bot.processUpdate(createPrivateMessageUpdate('/sendarticle'));
+        await microSleep();
         expectation.verify();
       }
-      await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withExactArgs(kPrivateChatId, sinon.match(/готово.*\/yes.*\/no/));
         bot.processUpdate(createPrivateMessageUpdate('Dumb news article: http://example.com'));
+        await microSleep();
         expectation.verify();
       }
-      await microSleep();
       {
         const expectation = botMocker.expects("sendMessage").withArgs(kPrivateChatId, sinon.match(/Отменяю/));
         bot.processUpdate(createPrivateMessageUpdate('/no'));

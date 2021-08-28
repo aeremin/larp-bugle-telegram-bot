@@ -1,6 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
 import {BotConfig} from "./config/config";
-import {saveReporterState, stateForReporter} from "./reporter_state_machine";
 import {DatabaseInterface} from "./storage";
 import {
   createVoteMarkup,
@@ -8,7 +7,7 @@ import {
   MessageVotes,
   NewsArticle,
   preprocessMessageBeforeApproval,
-  recalculateVotes,
+  recalculateVotes, ReporterStateAndMessage,
   UserStats,
   Vote
 } from "./util";
@@ -19,12 +18,13 @@ export function setUpBotBehavior(
   votesDb: DatabaseInterface<MessageVotes>,
   statsDb: DatabaseInterface<UserStats>,
   articlesDb: DatabaseInterface<NewsArticle>,
+  reporterStatesDb: DatabaseInterface<ReporterStateAndMessage>,
   config: BotConfig
 ) {
   setUpPing(bot);
   setUpDebugLogging(bot);
 
-  setUpReporterDialog(bot, votesDb, statsDb, articlesDb, config);
+  setUpReporterDialog(bot, votesDb, statsDb, articlesDb, reporterStatesDb, config);
 
   setUpVoting(bot, votesDb, statsDb, articlesDb, config);
 }
@@ -79,6 +79,7 @@ function setUpReporterDialog(
   votesDb: DatabaseInterface<MessageVotes>,
   statsDb: DatabaseInterface<UserStats>,
   articlesDb: DatabaseInterface<NewsArticle>,
+  reporterStatesDb: DatabaseInterface<ReporterStateAndMessage>,
   config: BotConfig
 ) {
   bot.onText(/^\/start(.*)/, async msg => {
@@ -90,9 +91,10 @@ function setUpReporterDialog(
   bot.onText(/^\/sendarticle(.*)/, async msg => {
     if (!isPrivateMessage(msg)) return;
     const chatId = msg.chat.id;
-    const s = stateForReporter(msg);
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
 
     if (s.state == "start" || s.state == "waiting_message") {
+      console.log(config.textMessages.SEND_ARTICLE_NOW);
       await bot.sendMessage(chatId, config.textMessages.SEND_ARTICLE_NOW);
       s.state = "waiting_message";
     } else if (s.state == "waiting_approval") {
@@ -102,7 +104,7 @@ function setUpReporterDialog(
       );
     }
 
-    saveReporterState(msg, s);
+    await reporterStatesDb.saveDatastoreEntry(msg.from!.id.toString(), s);
   });
 
   bot.onText(/^\/yes(.*)/, async msg => {
@@ -110,7 +112,7 @@ function setUpReporterDialog(
     if (!msg.from) return;
 
     const chatId = msg.chat.id;
-    const s = stateForReporter(msg);
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
     if (s.state == "start") {
       await bot.sendMessage(chatId, config.textMessages.NEED_SEND_ARTICLE_CMD);
     } else if (s.state == "waiting_message") {
@@ -159,21 +161,21 @@ function setUpReporterDialog(
       s.message = undefined;
     }
 
-    saveReporterState(msg, s);
+    await reporterStatesDb.saveDatastoreEntry(msg.from!.id.toString(), s);
   });
 
   bot.onText(/^\/no(.*)/, async msg => {
     if (!isPrivateMessage(msg)) return;
 
     const chatId = msg.chat.id;
-    const s = stateForReporter(msg);
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
     s.state = "start";
     s.message = undefined;
     await bot.sendMessage(
       chatId,
       config.textMessages.ARTICLE_SEND_WAS_CANCELLED
     );
-    saveReporterState(msg, s);
+    await reporterStatesDb.saveDatastoreEntry(msg.from!.id.toString(), s);
   });
 
   const articleHandler = async (msg: TelegramBot.Message) => {
@@ -182,7 +184,7 @@ function setUpReporterDialog(
     if (msg.text && msg.text.startsWith("/")) return;
 
     const chatId = msg.chat.id;
-    const s = stateForReporter(msg);
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
     if (s.state == "start") {
       await bot.sendMessage(chatId, config.textMessages.NEED_SEND_ARTICLE_CMD);
     } else if (s.state == "waiting_message") {
@@ -195,7 +197,7 @@ function setUpReporterDialog(
     } else if (s.state == "waiting_approval") {
     }
 
-    saveReporterState(msg, s);
+    await reporterStatesDb.saveDatastoreEntry(msg.from!.id.toString(), s);
   };
 
   bot.onText(/^(.+)/, articleHandler);
@@ -203,7 +205,7 @@ function setUpReporterDialog(
 
   bot.on("edited_message", async msg => {
     if (!isPrivateMessage(msg)) return;
-    const s = stateForReporter(msg);
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
     if (s.state != "waiting_approval" || !s.message) return;
     if (msg.message_id == s.message.message_id) {
       s.message = msg;
