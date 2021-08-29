@@ -17,3 +17,11 @@ jobs:
       - run: yarn
       - run: yarn test
       - run: yarn build
+      - run: cp package.json dist/package.json
+      - id: deploy
+        uses: google-github-actions/deploy-cloud-functions@main
+        with:
+          name: larp-bugle-bot-endpoint
+          runtime: nodejs14
+          credentials: ${{ secrets.gcp_credentials }}
+          source_dir: dist
