@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="819e7215-273d-49c0-8f1b-e0dc26b8d161" name="Default Changelist" comment="" />
+    <list default="true" id="819e7215-273d-49c0-8f1b-e0dc26b8d161" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.prettierrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/behavior.ts" beforeDir="false" afterPath="$PROJECT_DIR$/behavior.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tslint.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -55,15 +63,20 @@
       </list>
     </option>
   </component>
-  <component name="WindowStateProjectService">
-    <state x="987" y="433" width="587" height="534" key="find.popup" timestamp="1600095304566">
-      <screen x="0" y="0" width="2560" height="1400" />
-    </state>
-    <state x="987" y="433" width="587" height="534" key="find.popup/0.0.2560.1400/3840.419.1920.1040@0.0.2560.1400" timestamp="1600095304566" />
-    <state x="943" y="315" width="672" height="678" key="search.everywhere.popup" timestamp="1600159341227">
-      <screen x="0" y="0" width="2560" height="1400" />
-    </state>
-    <state x="943" y="315" width="672" height="678" key="search.everywhere.popup/0.0.2560.1400/3840.419.1920.1040@0.0.2560.1400" timestamp="1600094857069" />
-    <state x="943" y="315" width="672" height="678" key="search.everywhere.popup/0.0.2560.1400@0.0.2560.1400" timestamp="1600159341227" />
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>
