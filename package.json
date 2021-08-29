@@ -10,24 +10,8 @@
     "test:dev": "mocha",
     "test:watch": "mocha --watch",
     "test": "mocha --forbid-only",
-    "posttest": "nyc report --reporter=json > coverage/coverage.json",
     "start": "npm run build && forever start ./main.js",
     "stop": "forever stop ./main.js"
-  },
-  "nyc": {
-    "extension": [
-      ".ts"
-    ],
-    "exclude": [
-      "coverage/",
-      "**/*.spec.ts",
-      "**/*.d.ts"
-    ],
-    "reporter": [
-      "json",
-      "html"
-    ],
-    "all": true
   },
   "dependencies": {
     "@google-cloud/datastore": "6.5.0",
@@ -44,7 +28,6 @@
     "lodash": "^4.17.21",
     "mocha": "^6.2.2",
     "node-telegram-bot-api": "^0.40.0",
-    "nyc": "^15.0.0",
     "request-promise": "^4.2.5",
     "sinon": "^8.0.1",
     "source-map-support": "^0.5.16",
