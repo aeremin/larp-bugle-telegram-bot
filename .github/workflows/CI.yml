@@ -26,4 +26,5 @@ jobs:
           credentials: ${{ secrets.gcp_credentials }}
           source_dir: dist
           region: europe-central2
+          entry_point: botFunction
 
