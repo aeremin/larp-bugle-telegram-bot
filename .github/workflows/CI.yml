@@ -25,3 +25,5 @@ jobs:
           runtime: nodejs14
           credentials: ${{ secrets.gcp_credentials }}
           source_dir: dist
+          region: europe-central2
+
