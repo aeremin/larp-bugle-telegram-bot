@@ -1,17 +1,18 @@
-import TelegramBot from "node-telegram-bot-api";
-import {BotConfig} from "./config/config";
-import {DatabaseInterface} from "./storage";
+import TelegramBot from 'node-telegram-bot-api';
+import { BotConfig } from './config/config';
+import { DatabaseInterface } from './storage';
 import {
   createVoteMarkup,
   dbKeyForUser,
   MessageVotes,
   NewsArticle,
   preprocessMessageBeforeApproval,
-  recalculateVotes, ReporterStateAndMessage,
+  recalculateVotes,
+  ReporterStateAndMessage,
   UserStats,
-  Vote
-} from "./util";
-import {forwardMessageToVk} from "./vk_helper";
+  Vote,
+} from './util';
+import { forwardMessageToVk } from './vk_helper';
 
 export function setUpBotBehavior(
   bot: TelegramBot,
@@ -19,7 +20,7 @@ export function setUpBotBehavior(
   statsDb: DatabaseInterface<UserStats>,
   articlesDb: DatabaseInterface<NewsArticle>,
   reporterStatesDb: DatabaseInterface<ReporterStateAndMessage>,
-  config: BotConfig
+  config: BotConfig,
 ) {
   setUpPing(bot);
   setUpDebugLogging(bot);
@@ -32,25 +33,25 @@ export function setUpBotBehavior(
 function setUpPing(bot: TelegramBot) {
   bot.onText(/^\/ping(.*)/, async (msg, _match) => {
     const chatId = msg.chat.id;
-    const res = await bot.sendMessage(chatId, "Pong!");
+    const res = await bot.sendMessage(chatId, 'Pong!');
     console.log(JSON.stringify(res));
   });
 }
 
 function setUpDebugLogging(bot: TelegramBot) {
-  bot.on("message", async msg => {
-    console.debug("message: " + JSON.stringify(msg));
+  bot.on('message', async msg => {
+    console.debug('message: ' + JSON.stringify(msg));
   });
-  bot.on("channel_post", async msg => {
-    console.debug("channel_post: " + JSON.stringify(msg));
+  bot.on('channel_post', async msg => {
+    console.debug('channel_post: ' + JSON.stringify(msg));
   });
-  bot.on("edited_message", async msg => {
-    console.debug("edited_message: " + JSON.stringify(msg));
+  bot.on('edited_message', async msg => {
+    console.debug('edited_message: ' + JSON.stringify(msg));
   });
 }
 
 function isPrivateMessage(msg: TelegramBot.Message): boolean {
-  return msg.chat && msg.chat.type == "private";
+  return msg.chat && msg.chat.type == 'private';
 }
 
 function anonymouslyForwardMessage(
@@ -58,18 +59,18 @@ function anonymouslyForwardMessage(
   msg: TelegramBot.Message,
   options: TelegramBot.SendBasicOptions,
   tag: string | undefined,
-  bot: TelegramBot
+  bot: TelegramBot,
 ) {
   if (msg.text) {
     return bot.sendMessage(
       chatId,
       preprocessMessageBeforeApproval(msg.text, tag),
-      options
+      options,
     );
   } else if (msg.photo) {
     return bot.sendPhoto(chatId, msg.photo[0].file_id, {
       ...options,
-      caption: preprocessMessageBeforeApproval(msg.caption, tag)
+      caption: preprocessMessageBeforeApproval(msg.caption, tag),
     });
   }
 }
@@ -80,7 +81,7 @@ function setUpReporterDialog(
   statsDb: DatabaseInterface<UserStats>,
   articlesDb: DatabaseInterface<NewsArticle>,
   reporterStatesDb: DatabaseInterface<ReporterStateAndMessage>,
-  config: BotConfig
+  config: BotConfig,
 ) {
   bot.onText(/^\/start(.*)/, async msg => {
     if (!isPrivateMessage(msg)) return;
@@ -91,16 +92,16 @@ function setUpReporterDialog(
   bot.onText(/^\/sendarticle(.*)/, async msg => {
     if (!isPrivateMessage(msg)) return;
     const chatId = msg.chat.id;
-    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? { state: 'start' };
 
-    if (s.state == "start" || s.state == "waiting_message") {
+    if (s.state == 'start' || s.state == 'waiting_message') {
       console.log(config.textMessages.SEND_ARTICLE_NOW);
       await bot.sendMessage(chatId, config.textMessages.SEND_ARTICLE_NOW);
-      s.state = "waiting_message";
-    } else if (s.state == "waiting_approval") {
+      s.state = 'waiting_message';
+    } else if (s.state == 'waiting_approval') {
       await bot.sendMessage(
         chatId,
-        config.textMessages.ARTICLE_WAITING_FOR_APPROVAL
+        config.textMessages.ARTICLE_WAITING_FOR_APPROVAL,
       );
     }
 
@@ -112,30 +113,30 @@ function setUpReporterDialog(
     if (!msg.from) return;
 
     const chatId = msg.chat.id;
-    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
-    if (s.state == "start") {
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? { state: 'start' };
+    if (s.state == 'start') {
       await bot.sendMessage(chatId, config.textMessages.NEED_SEND_ARTICLE_CMD);
-    } else if (s.state == "waiting_message") {
+    } else if (s.state == 'waiting_message') {
       await bot.sendMessage(chatId, config.textMessages.NEED_ARTICLE_TEXT);
-    } else if (s.state == "waiting_approval") {
+    } else if (s.state == 'waiting_approval') {
       const votes = new MessageVotes();
-      if (msg.from.username != "aleremin") {
+      if (msg.from.username != 'aleremin') {
         votes.disallowedToVote.push(msg.from.id);
       }
       const res = await anonymouslyForwardMessage(
         config.moderatorChatId,
         s.message as TelegramBot.Message,
-        {reply_markup: createVoteMarkup(votes)},
+        { reply_markup: createVoteMarkup(votes) },
         config.tag,
-        bot
+        bot,
       );
       if (!res) {
-        console.error("Failed to forward message!");
+        console.error('Failed to forward message!');
         return;
       }
       await votesDb.saveDatastoreEntry(
         `${res.chat.id}_${res.message_id}`,
-        votes
+        votes,
       );
       await statsDb.updateDatastoreEntry(
         dbKeyForUser(msg.from),
@@ -143,7 +144,7 @@ function setUpReporterDialog(
           stats = stats || new UserStats();
           stats.articlesProposed++;
           return stats;
-        }
+        },
       );
       await articlesDb.saveDatastoreEntry(res.message_id.toString(), {
         submitterId: msg.from.id,
@@ -153,11 +154,11 @@ function setUpReporterDialog(
         text:
           (s.message as TelegramBot.Message).text ||
           (s.message as TelegramBot.Message).caption ||
-          ""
+          '',
       });
       console.log(JSON.stringify(res));
       await bot.sendMessage(chatId, config.textMessages.THANK_YOU_FOR_ARTICLE);
-      s.state = "start";
+      s.state = 'start';
       s.message = undefined;
     }
 
@@ -168,12 +169,12 @@ function setUpReporterDialog(
     if (!isPrivateMessage(msg)) return;
 
     const chatId = msg.chat.id;
-    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
-    s.state = "start";
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? { state: 'start' };
+    s.state = 'start';
     s.message = undefined;
     await bot.sendMessage(
       chatId,
-      config.textMessages.ARTICLE_SEND_WAS_CANCELLED
+      config.textMessages.ARTICLE_SEND_WAS_CANCELLED,
     );
     await reporterStatesDb.saveDatastoreEntry(msg.from!.id.toString(), s);
   });
@@ -181,32 +182,32 @@ function setUpReporterDialog(
   const articleHandler = async (msg: TelegramBot.Message) => {
     if (!isPrivateMessage(msg)) return;
     if (!msg.text && !msg.photo) return;
-    if (msg.text && msg.text.startsWith("/")) return;
+    if (msg.text && msg.text.startsWith('/')) return;
 
     const chatId = msg.chat.id;
-    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
-    if (s.state == "start") {
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? { state: 'start' };
+    if (s.state == 'start') {
       await bot.sendMessage(chatId, config.textMessages.NEED_SEND_ARTICLE_CMD);
-    } else if (s.state == "waiting_message") {
+    } else if (s.state == 'waiting_message') {
       await bot.sendMessage(
         chatId,
-        config.textMessages.ARTICLE_REQUEST_APPROVAL
+        config.textMessages.ARTICLE_REQUEST_APPROVAL,
       );
-      s.state = "waiting_approval";
+      s.state = 'waiting_approval';
       s.message = msg;
-    } else if (s.state == "waiting_approval") {
+    } else if (s.state == 'waiting_approval') {
     }
 
     await reporterStatesDb.saveDatastoreEntry(msg.from!.id.toString(), s);
   };
 
   bot.onText(/^(.+)/, articleHandler);
-  bot.on("photo", articleHandler);
+  bot.on('photo', articleHandler);
 
-  bot.on("edited_message", async msg => {
+  bot.on('edited_message', async msg => {
     if (!isPrivateMessage(msg)) return;
-    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? {state: 'start'};
-    if (s.state != "waiting_approval" || !s.message) return;
+    const s = await reporterStatesDb.readDatastoreEntry(msg.from!.id.toString()) ?? { state: 'start' };
+    if (s.state != 'waiting_approval' || !s.message) return;
     if (msg.message_id == s.message.message_id) {
       s.message = msg;
     }
@@ -214,8 +215,8 @@ function setUpReporterDialog(
 }
 
 function stringToVote(s: string | undefined): Vote | undefined {
-  if (s == "+") return "+";
-  if (s == "-") return "-";
+  if (s == '+') return '+';
+  if (s == '-') return '-';
   return undefined;
 }
 
@@ -228,7 +229,7 @@ async function processVotesUpdate(
   dbKey: string,
   userId: number,
   modifier: string | undefined,
-  votesLimits: { votesToApprove: number, votesToReject: number }
+  votesLimits: { votesToApprove: number, votesToReject: number },
 ): Promise<MessageVotes | undefined> {
   return db.updateDatastoreEntry(dbKey, (votes: MessageVotes | undefined) => {
     const vote = stringToVote(modifier);
@@ -245,9 +246,9 @@ function setUpVoting(
   votesDb: DatabaseInterface<MessageVotes>,
   statsDb: DatabaseInterface<UserStats>,
   articlesDb: DatabaseInterface<NewsArticle>,
-  config: BotConfig
+  config: BotConfig,
 ) {
-  bot.on("callback_query", async query => {
+  bot.on('callback_query', async query => {
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message) return;
 
@@ -268,7 +269,7 @@ function setUpVoting(
       dbKey,
       query.from.id,
       query.data,
-      {votesToApprove, votesToReject},
+      { votesToApprove, votesToReject },
     );
 
     if (maybeVotes) {
@@ -282,8 +283,8 @@ function setUpVoting(
             stats.votesAsReader++;
           }
           return stats;
-        }
-      );
+        },
+      ));
 
       if (maybeVotes.votesAgainst.length >= votesToReject) {
         await anonymouslyForwardMessage(
@@ -291,34 +292,34 @@ function setUpVoting(
           query.message,
           {},
           undefined,
-          bot
+          bot,
         );
         await bot.deleteMessage(
           query.message.chat.id,
-          query.message.message_id.toString()
+          query.message.message_id.toString(),
         );
       } else if (maybeVotes.votesFor.length >= votesToApprove) {
         const votesInChannel = new MessageVotes();
         const res = await anonymouslyForwardMessage(
           config.newsChannelId,
           query.message,
-          {reply_markup: createVoteMarkup(votesInChannel)},
+          { reply_markup: createVoteMarkup(votesInChannel) },
           undefined,
-          bot
+          bot,
         );
         await articlesDb.updateDatastoreEntry(
           query.message.message_id.toString(),
           v => {
             if (v) v.wasPublished = true;
             return v;
-          }
-        );
+          },
+        ));
         await bot.deleteMessage(
           query.message.chat.id,
-          query.message.message_id.toString()
+          query.message.message_id.toString(),
         );
         if (!res) {
-          console.error("Failed to forward message!");
+          console.error('Failed to forward message!');
           return;
         }
 
@@ -327,19 +328,19 @@ function setUpVoting(
             config.vkRepostConfig.groupId,
             config.vkRepostConfig.accessToken,
             bot,
-            query.message
+            query.message,
           );
           console.log(res2);
         }
 
         await votesDb.saveDatastoreEntry(
           `${res.chat.id}_${res.message_id}`,
-          votesInChannel
-        );
+          votesInChannel,
+        ));
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes), {
           chat_id: query.message.chat.id,
-          message_id: query.message.message_id
+          message_id: query.message.message_id,
         });
       }
     }

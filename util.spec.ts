@@ -1,4 +1,4 @@
-import {expect} from 'chai';
+import { expect } from 'chai';
 import lodash from 'lodash';
 import 'mocha';
 import {
@@ -6,17 +6,17 @@ import {
   extractFirstUrl,
   MessageVotes,
   preprocessMessageBeforeApproval,
-  recalculateVotes
+  recalculateVotes,
 } from './util';
 
 describe('Utils tests', () => {
   describe('preprocessMessageBeforeApproval', () => {
     it('Returns message if no tag provided', () => {
-      expect(preprocessMessageBeforeApproval("Hello world!", undefined)).equals("Hello world!");
+      expect(preprocessMessageBeforeApproval('Hello world!', undefined)).equals('Hello world!');
     });
 
     it('Concatenates tag if provided', () => {
-      expect(preprocessMessageBeforeApproval("Hello world!", "#example")).equals("Hello world!\n#example");
+      expect(preprocessMessageBeforeApproval('Hello world!', '#example')).equals('Hello world!\n#example');
     });
   });
 
@@ -26,7 +26,7 @@ describe('Utils tests', () => {
         votesFor: [1, 2, 3],
         votesAgainst: [4],
         disallowedToVote: [],
-        finished: false
+        finished: false,
       }).inline_keyboard;
       expect(keyboard).lengthOf(1);
       const buttons = keyboard[0];
@@ -43,75 +43,75 @@ describe('Utils tests', () => {
 
   // TODO: Add better tests for votes.finished calculation
   describe('recalculateVotes', () => {
-    const votes: MessageVotes = {votesFor: [1, 2, 3], votesAgainst: [4], disallowedToVote: [6, 7], finished: false};
+    const votes: MessageVotes = { votesFor: [1, 2, 3], votesAgainst: [4], disallowedToVote: [6, 7], finished: false };
 
-    it("Returns false and doesn't modify votes if disallowed to vote", () => {
+    it('Returns false and doesn\'t modify votes if disallowed to vote', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 7, '+', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 7, '+', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.false;
       expect(maybeModifiedVotes).to.deep.equal(votes);
     });
 
-    it("Returns false and doesn't modify votes if already voted for", () => {
+    it('Returns false and doesn\'t modify votes if already voted for', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 2, '+', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 2, '+', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.false;
       expect(maybeModifiedVotes).to.deep.equal(votes);
     });
 
-    it("Returns false and doesn't modify votes if already voted against", () => {
+    it('Returns false and doesn\'t modify votes if already voted against', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 4, '-', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 4, '-', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.false;
       expect(maybeModifiedVotes).to.deep.equal(votes);
     });
 
-    it("Returns true and adds vote for", () => {
+    it('Returns true and adds vote for', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 10, '+', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 10, '+', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.true;
-      expect(maybeModifiedVotes).to.deep.equal({...votes, votesFor: [1, 2, 3, 10], finished: true});
+      expect(maybeModifiedVotes).to.deep.equal({ ...votes, votesFor: [1, 2, 3, 10], finished: true });
     });
 
-    it("Returns true and adds vote against", () => {
+    it('Returns true and adds vote against', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 10, '-', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 10, '-', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.true;
-      expect(maybeModifiedVotes).to.deep.equal({...votes, votesAgainst: [4, 10], finished: true});
+      expect(maybeModifiedVotes).to.deep.equal({ ...votes, votesAgainst: [4, 10], finished: true });
     });
 
-    it("Returns true moves vote to for", () => {
+    it('Returns true moves vote to for', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 4, '+', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 4, '+', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.true;
-      expect(maybeModifiedVotes).to.deep.equal({...votes, votesFor: [1, 2, 3, 4], votesAgainst: [], finished: true});
+      expect(maybeModifiedVotes).to.deep.equal({ ...votes, votesFor: [1, 2, 3, 4], votesAgainst: [], finished: true });
     });
 
-    it("Returns true moves vote to against", () => {
+    it('Returns true moves vote to against', () => {
       const maybeModifiedVotes = lodash.cloneDeep(votes);
-      const success = recalculateVotes(maybeModifiedVotes, 2, '-', {votesToApprove: 2, votesToReject: 2});
+      const success = recalculateVotes(maybeModifiedVotes, 2, '-', { votesToApprove: 2, votesToReject: 2 });
       expect(success).to.be.true;
-      expect(maybeModifiedVotes).to.deep.equal({...votes, votesFor: [1, 3], votesAgainst: [4, 2], finished: true});
+      expect(maybeModifiedVotes).to.deep.equal({ ...votes, votesFor: [1, 3], votesAgainst: [4, 2], finished: true });
     });
   });
 
-  describe("extractFirstUrl", () => {
-    it("Can extract normal link", () => {
+  describe('extractFirstUrl', () => {
+    it('Can extract normal link', () => {
       expect(
-        extractFirstUrl("Something whatever http://example.com/foo magic pony"))
-        .equals("http://example.com/foo");
+        extractFirstUrl('Something whatever http://example.com/foo magic pony'))
+        .equals('http://example.com/foo');
     });
 
-    it("Can extract link in parenthesis", () => {
+    it('Can extract link in parenthesis', () => {
       expect(
-        extractFirstUrl("Something whatever (http://example.com/foo) magic pony"))
-        .equals("http://example.com/foo");
+        extractFirstUrl('Something whatever (http://example.com/foo) magic pony'))
+        .equals('http://example.com/foo');
     });
 
-    it("Can extract link in the end of line", () => {
+    it('Can extract link in the end of line', () => {
       expect(
-        extractFirstUrl("Something whatever http://example.com/foo"))
-        .equals("http://example.com/foo");
+        extractFirstUrl('Something whatever http://example.com/foo'))
+        .equals('http://example.com/foo');
     });
   });
 });

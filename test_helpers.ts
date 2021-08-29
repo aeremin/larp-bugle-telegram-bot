@@ -5,7 +5,7 @@ let gMessageId = 0;
 
 export const kPrivateChatId = 17;
 export const kUserId = 123;
-export const kUsername = "kool_xakep";
+export const kUsername = 'kool_xakep';
 
 export const kModeratorChatId = 18;
 export const kModeratorChatMessageId = 27;
@@ -22,7 +22,7 @@ export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
         id: kUserId,
         is_bot: false,
         username: kUsername,
-        first_name: "",
+        first_name: '',
         last_name: undefined,
       },
       text,
@@ -30,9 +30,9 @@ export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
       date: new Date().valueOf(),
       chat: {
         id: kPrivateChatId,
-        type: 'private'
-      }
-    }
+        type: 'private',
+      },
+    },
   };
 }
 
@@ -44,22 +44,22 @@ export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Up
       photo: [{
         width: 100,
         height: 100,
-        file_id: 'abcde'
+        file_id: 'abcde',
       }],
       from: {
         id: kUserId,
         is_bot: false,
         username: kUsername,
-        first_name: "",
+        first_name: '',
         last_name: undefined,
       },
       message_id: gMessageId++,
       date: new Date().valueOf(),
       chat: {
         id: kPrivateChatId,
-        type: 'private'
-      }
-    }
+        type: 'private',
+      },
+    },
   };
 }
 
@@ -72,7 +72,7 @@ function createVoteUpdate(userId: number, messageId: number, chatId: number, mes
       from: {
         id: userId,
         is_bot: false,
-        first_name: ""
+        first_name: '',
       },
       message: {
         message_id: messageId,
@@ -80,11 +80,11 @@ function createVoteUpdate(userId: number, messageId: number, chatId: number, mes
         text: messageText,
         chat: {
           id: chatId,
-          type: 'group'
-        }
+          type: 'group',
+        },
       },
-      chat_instance: ""
-    }
+      chat_instance: '',
+    },
   };
 }
 

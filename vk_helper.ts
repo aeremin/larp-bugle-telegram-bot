@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import * as rp from 'request-promise';
-import {extractFirstUrl} from './util';
+import { extractFirstUrl } from './util';
 
 export async function forwardMessageToVk(groupId: number, accessToken: string, bot: TelegramBot, msg: TelegramBot.Message) {
   const getUrl = (method: string, params: string) =>
@@ -18,7 +18,7 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
 
   if (msg.photo) {
     const getUploadServerResponse =
-      await rp.get({url: getUrl('photos.getWallUploadServer', `group_id=${groupId}`), json: true});
+      await rp.get({ url: getUrl('photos.getWallUploadServer', `group_id=${groupId}`), json: true });
 
     console.log(getUploadServerResponse);
 
@@ -26,9 +26,9 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
     const uploadResponse = await rp.post({
       url: getUploadServerResponse.response.upload_url,
       formData: {
-        photo: rp.get(imgUrl)
+        photo: rp.get(imgUrl),
       },
-      json: true
+      json: true,
     });
 
     console.log(uploadResponse);
@@ -36,7 +36,7 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
     const saveResponse = await rp.get({
       url: getUrl('photos.saveWallPhoto',
         `group_id=${groupId}&hash=${uploadResponse.hash}&server=${uploadResponse.server}&photo=${encodeURIComponent(uploadResponse.photo)}`),
-      json: true
+      json: true,
     });
 
     console.log(saveResponse);
@@ -50,8 +50,8 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
   return await rp.post({
     url: getUrl('wall.post', `owner_id=-${groupId}&from_group=1&attachments=${attachmentsJoined}`),
     formData: {
-      message: messageText
+      message: messageText,
     },
-    json: true
+    json: true,
   });
 }

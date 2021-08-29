@@ -1,5 +1,5 @@
-import {Datastore, DatastoreRequest} from '@google-cloud/datastore';
-import {MessageVotes, NewsArticle, ReporterStateAndMessage, UserStats} from './util';
+import { Datastore, DatastoreRequest } from '@google-cloud/datastore';
+import { MessageVotes, NewsArticle, ReporterStateAndMessage, UserStats } from './util';
 
 export interface DatabaseInterface<T> {
   saveDatastoreEntry(dbKey: string, entity: T): Promise<void>;
@@ -50,7 +50,7 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
   private async saveDatastoreEntryImpl(dsInterface: DatastoreRequest | undefined, dbKey: string, entity: T) {
     const task = {
       key: this.datastore.key([this.kDatastoreKind, dbKey]),
-      data: entity
+      data: entity,
     };
     if (!dsInterface)
       dsInterface = this.datastore;

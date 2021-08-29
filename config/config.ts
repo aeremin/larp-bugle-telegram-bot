@@ -1,5 +1,5 @@
-import * as gdesra4 from "./gdesra4";
-import * as normal from "./normal";
+import * as gdesra4 from './gdesra4';
+import * as normal from './normal';
 
 export type VkRepostConfig = {
   groupId: number,
@@ -32,11 +32,11 @@ export function getConfig(): BotConfig {
     junkGroupId: Number(process.env.TELEGRAM_BOT_JUNK_CHANNEL_ID),
     vkRepostConfig: getVkRepostConfig(),
   };
-  if (process.env.CONFIG_MODE === "gdesra4") {
+  if (process.env.CONFIG_MODE === 'gdesra4') {
     return {
       ...commonConfig,
       textMessages: gdesra4.getMessages(),
-      tag: "#ПодгонАнонимуса",
+      tag: '#ПодгонАнонимуса',
     };
   } else {
     return {
