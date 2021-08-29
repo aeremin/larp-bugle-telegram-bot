@@ -252,6 +252,8 @@ function setUpVoting(
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message) return;
 
+    await bot.answerCallbackQuery(query.id);
+
     const isModeratorVoting = query.message.chat.id == config.moderatorChatId;
 
     const votesToApprove = isModeratorVoting
@@ -272,8 +274,10 @@ function setUpVoting(
       { votesToApprove, votesToReject },
     );
 
+    const todos: Array<Promise<unknown>> = [];
+
     if (maybeVotes) {
-      await statsDb.updateDatastoreEntry(
+      todos.push(statsDb.updateDatastoreEntry(
         dbKeyForUser(query.from),
         (stats: UserStats | undefined) => {
           stats = stats || new UserStats();
@@ -307,7 +311,7 @@ function setUpVoting(
           undefined,
           bot,
         );
-        await articlesDb.updateDatastoreEntry(
+        todos.push(articlesDb.updateDatastoreEntry(
           query.message.message_id.toString(),
           v => {
             if (v) v.wasPublished = true;
@@ -333,7 +337,7 @@ function setUpVoting(
           console.log(res2);
         }
 
-        await votesDb.saveDatastoreEntry(
+        todos.push(votesDb.saveDatastoreEntry(
           `${res.chat.id}_${res.message_id}`,
           votesInChannel,
         ));
@@ -343,8 +347,7 @@ function setUpVoting(
           message_id: query.message.message_id,
         });
       }
+      await Promise.all(todos);
     }
-
-    await bot.answerCallbackQuery(query.id);
   });
 }
