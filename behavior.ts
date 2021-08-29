@@ -252,8 +252,6 @@ function setUpVoting(
     console.log(`Received query: ${JSON.stringify(query)}`);
     if (!query.message) return;
 
-    await bot.answerCallbackQuery(query.id);
-
     const isModeratorVoting = query.message.chat.id == config.moderatorChatId;
 
     const votesToApprove = isModeratorVoting
@@ -274,10 +272,8 @@ function setUpVoting(
       { votesToApprove, votesToReject },
     );
 
-    const todos: Array<Promise<unknown>> = [];
-
     if (maybeVotes) {
-      todos.push(statsDb.updateDatastoreEntry(
+      await statsDb.updateDatastoreEntry(
         dbKeyForUser(query.from),
         (stats: UserStats | undefined) => {
           stats = stats || new UserStats();
@@ -288,7 +284,7 @@ function setUpVoting(
           }
           return stats;
         },
-      ));
+      );
 
       if (maybeVotes.votesAgainst.length >= votesToReject) {
         await anonymouslyForwardMessage(
@@ -311,13 +307,13 @@ function setUpVoting(
           undefined,
           bot,
         );
-        todos.push(articlesDb.updateDatastoreEntry(
+        await articlesDb.updateDatastoreEntry(
           query.message.message_id.toString(),
           v => {
             if (v) v.wasPublished = true;
             return v;
           },
-        ));
+        );
         await bot.deleteMessage(
           query.message.chat.id,
           query.message.message_id.toString(),
@@ -337,17 +333,18 @@ function setUpVoting(
           console.log(res2);
         }
 
-        todos.push(votesDb.saveDatastoreEntry(
+        await votesDb.saveDatastoreEntry(
           `${res.chat.id}_${res.message_id}`,
           votesInChannel,
-        ));
+        );
       } else {
         await bot.editMessageReplyMarkup(createVoteMarkup(maybeVotes), {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
         });
       }
-      await Promise.all(todos);
     }
+
+    await bot.answerCallbackQuery(query.id);
   });
 }
