@@ -19,6 +19,6 @@ export const botFunction = async (req: { body: TelegramBot.Update }, res: any) =
   try {
     await bot.processUpdate(req.body);
   } finally {
-    res.status(200).end();
+    setTimeout(() => res.status(200).end(), 5000);
   }
 };
