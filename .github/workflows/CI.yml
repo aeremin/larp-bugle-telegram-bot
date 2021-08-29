@@ -27,4 +27,5 @@ jobs:
           source_dir: dist
           region: europe-central2
           entry_point: botFunction
+          env_vars:  ${{ secrets.envs }}
 
