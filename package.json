@@ -5,13 +5,10 @@
   "author": "Alexey Eremin <a.eremin.msu@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "deps": "yarn install",
     "build": "tsc",
     "test:dev": "mocha",
     "test:watch": "mocha --watch",
-    "test": "mocha --forbid-only",
-    "start": "npm run build && forever start ./main.js",
-    "stop": "forever stop ./main.js"
+    "test": "mocha --forbid-only"
   },
   "dependencies": {
     "@google-cloud/datastore": "6.5.0",
@@ -31,8 +28,7 @@
     "request-promise": "^4.2.5",
     "sinon": "^8.0.1",
     "source-map-support": "^0.5.16",
-    "ts-node": "^8.5.4",
-    "tslint-consistent-codestyle": "^1.16.0"
+    "ts-node": "^8.5.4"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.29.3",
@@ -44,7 +40,6 @@
     "eslint-plugin-jsdoc": "^36.0.8",
     "eslint-plugin-prefer-arrow": "^1.2.3",
     "eslint-plugin-prettier": "^3.4.1",
-    "forever": "^1.0.0",
     "prettier": "^2.3.2",
     "tslint": "^6.1.3",
     "typescript": "4.4.2"
