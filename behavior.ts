@@ -31,7 +31,7 @@ export function setUpBotBehavior(
 }
 
 function setUpPing(bot: Telegraf) {
-  bot.hears('ping', async (ctx) => {
+  bot.hears('/ping', async (ctx) => {
     const res = await ctx.reply('Pong!');
     console.log(JSON.stringify(res));
   });
