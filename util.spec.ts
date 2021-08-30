@@ -33,11 +33,11 @@ describe('Utils tests', () => {
       expect(buttons).lengthOf(2);
       const forButton = buttons[0];
       expect(forButton.text).contains('3');
-      expect(forButton.callback_data).equals('+');
+      expect(forButton).contains({callback_data: '+'});
 
       const againstButton = buttons[1];
       expect(againstButton.text).contains('1');
-      expect(againstButton.callback_data).equals('-');
+      expect(againstButton).contains({callback_data: '-'});
     });
   });
 

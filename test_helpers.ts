@@ -1,4 +1,4 @@
-import TelegramBot from 'node-telegram-bot-api';
+import { Update } from 'typegram';
 
 let gUpdateId = 0;
 let gMessageId = 0;
@@ -9,12 +9,11 @@ export const kUsername = 'kool_xakep';
 
 export const kModeratorChatId = 18;
 export const kModeratorChatMessageId = 27;
-export const kModeratorChatMessageDbKey = `${kModeratorChatId}_${kModeratorChatMessageId}`;
 
 export const kChannelId = 40;
 export const kChannelMessageId = 41;
 
-export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
+export function createPrivateMessageUpdate(text: string): Update {
   return {
     update_id: gUpdateId++,
     message: {
@@ -31,12 +30,13 @@ export function createPrivateMessageUpdate(text: string): TelegramBot.Update {
       chat: {
         id: kPrivateChatId,
         type: 'private',
+        first_name: ''
       },
     },
   };
 }
 
-export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Update {
+export function createPrivateImageMessageUpdate(caption: string): Update {
   return {
     update_id: gUpdateId++,
     message: {
@@ -45,6 +45,7 @@ export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Up
         width: 100,
         height: 100,
         file_id: 'abcde',
+        file_unique_id: ''
       }],
       from: {
         id: kUserId,
@@ -58,12 +59,13 @@ export function createPrivateImageMessageUpdate(caption: string): TelegramBot.Up
       chat: {
         id: kPrivateChatId,
         type: 'private',
+        first_name: '',
       },
     },
   };
 }
 
-function createVoteUpdate(userId: number, messageId: number, chatId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+function createVoteUpdate(userId: number, messageId: number, chatId: number, messageText: string, modifier: '+' | '-'): Update {
   return {
     update_id: gUpdateId++,
     callback_query: {
@@ -81,6 +83,7 @@ function createVoteUpdate(userId: number, messageId: number, chatId: number, mes
         chat: {
           id: chatId,
           type: 'group',
+          title: '',
         },
       },
       chat_instance: '',
@@ -88,18 +91,11 @@ function createVoteUpdate(userId: number, messageId: number, chatId: number, mes
   };
 }
 
-export function createModeratorVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+export function createModeratorVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): Update {
   return createVoteUpdate(userId, kModeratorChatMessageId, kModeratorChatId, messageText, modifier);
 }
 
-export function createReaderVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): TelegramBot.Update {
+export function createReaderVoteUpdate(userId: number, messageText: string, modifier: '+' | '-'): Update {
   return createVoteUpdate(userId, kChannelMessageId, kChannelId, messageText, modifier);
 }
 
-export function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-export function microSleep() {
-  return sleep(1);
-}

@@ -1,4 +1,4 @@
-import TelegramBot from 'node-telegram-bot-api';
+import { Message, User, InlineKeyboardMarkup } from 'typegram'
 
 export function preprocessMessageBeforeApproval(messageText: string | undefined, tag: string | undefined): string {
   if (!messageText)
@@ -10,7 +10,7 @@ export function preprocessMessageBeforeApproval(messageText: string | undefined,
   }
 }
 
-export function createVoteMarkup(votes: MessageVotes): TelegramBot.InlineKeyboardMarkup {
+export function createVoteMarkup(votes: MessageVotes): InlineKeyboardMarkup {
   return {
     inline_keyboard: [[
       {
@@ -85,7 +85,7 @@ export function recalculateVotes(votes: MessageVotes, userId: number, vote: Vote
   return false;
 }
 
-export function dbKeyForUser(user: TelegramBot.User): string {
+export function dbKeyForUser(user: User): string {
   return `${user.id}_${user.username}`;
 }
 
@@ -103,5 +103,5 @@ type ReporterState = 'start' | 'waiting_message' | 'waiting_approval';
 
 export interface ReporterStateAndMessage {
   state: ReporterState;
-  message?: TelegramBot.Message;
+  message?: Message.TextMessage | Message.PhotoMessage;
 }

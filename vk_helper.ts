@@ -1,14 +1,15 @@
-import TelegramBot from 'node-telegram-bot-api';
 import * as rp from 'request-promise';
+import { Context } from 'telegraf';
+import { Message } from 'typegram';
 import { extractFirstUrl } from './util';
 
-export async function forwardMessageToVk(groupId: number, accessToken: string, bot: TelegramBot, msg: TelegramBot.Message) {
+export async function forwardMessageToVk(groupId: number, accessToken: string, ctx: Context, msg: Message) {
   const getUrl = (method: string, params: string) =>
     `https://api.vk.com/method/${method}?access_token=${accessToken}&v=5.92&${params}`;
 
   const attachments: string[] = [];
 
-  const messageText = msg.text || msg.caption || '';
+  const messageText = 'text' in msg ? msg.text : (('caption' in msg && msg.caption) ? msg.caption : '')
   const maybeUrl = extractFirstUrl(messageText);
   if (maybeUrl) {
     console.log('Matched!');
@@ -16,17 +17,17 @@ export async function forwardMessageToVk(groupId: number, accessToken: string, b
     console.log(attachments);
   }
 
-  if (msg.photo) {
+  if ('photo' in msg) {
     const getUploadServerResponse =
       await rp.get({ url: getUrl('photos.getWallUploadServer', `group_id=${groupId}`), json: true });
 
     console.log(getUploadServerResponse);
 
-    const imgUrl = await bot.getFileLink(msg.photo[msg.photo.length - 1].file_id);
+    const imgUrl = await ctx.telegram.getFileLink(msg.photo[msg.photo.length - 1].file_id);
     const uploadResponse = await rp.post({
       url: getUploadServerResponse.response.upload_url,
       formData: {
-        photo: rp.get(imgUrl),
+        photo: rp.get(imgUrl.toString()),
       },
       json: true,
     });
