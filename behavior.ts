@@ -78,7 +78,7 @@ function setUpReporterDialog(
 
   bot.hears('/sendarticle', async ctx => {
     if (!isPrivateMessage(ctx.message)) return;
-    const s = await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString()) ?? { state: 'start' };
+    const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
 
     if (s.state == 'start' || s.state == 'waiting_message') {
       await ctx.reply(config.textMessages.SEND_ARTICLE_NOW);
@@ -92,7 +92,7 @@ function setUpReporterDialog(
 
   bot.hears('/yes', async ctx => {
     if (!isPrivateMessage(ctx.message)) return;
-    const s = await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString()) ?? { state: 'start' };
+    const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
     if (s.state == 'start') {
       await ctx.reply(config.textMessages.NEED_SEND_ARTICLE_CMD);
     } else if (s.state == 'waiting_message') {
@@ -142,7 +142,7 @@ function setUpReporterDialog(
     if (!isPrivateMessage(ctx.message)) return;
 
     const chatId = ctx.message.chat.id;
-    const s = await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString()) ?? { state: 'start' };
+    const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
     s.state = 'start';
     s.message = undefined;
     await ctx.reply(config.textMessages.ARTICLE_SEND_WAS_CANCELLED);
@@ -153,7 +153,7 @@ function setUpReporterDialog(
     console.log('GOT TEXT')
     if (!isPrivateMessage(ctx.message)) return;
     if (ctx.message.text && ctx.message.text.startsWith('/')) return;
-    const s = await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString()) ?? { state: 'start' };
+    const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
     if (s.state == 'start') {
       await ctx.reply(config.textMessages.NEED_SEND_ARTICLE_CMD);
     } else if (s.state == 'waiting_message') {
@@ -168,7 +168,7 @@ function setUpReporterDialog(
 
   bot.on('photo', async (ctx) => {
     if (!isPrivateMessage(ctx.message)) return;
-    const s = await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString()) ?? { state: 'start' };
+    const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
     if (s.state == 'start') {
       await ctx.reply(config.textMessages.NEED_SEND_ARTICLE_CMD);
     } else if (s.state == 'waiting_message') {
@@ -183,7 +183,7 @@ function setUpReporterDialog(
 
   bot.on('edited_message', async ctx => {
     if (!isPrivateMessage(ctx.editedMessage)) return;
-    const s = await reporterStatesDb.readDatastoreEntry(ctx.from.id.toString()) ?? { state: 'start' };
+    const s = (await reporterStatesDb.readDatastoreEntry(ctx.from.id.toString())) ?? { state: 'start' };
     if (s.state != 'waiting_approval' || !s.message) return;
     if (ctx.editedMessage.message_id == s.message.message_id) {
       s.message = ctx.editedMessage as Message.TextMessage | Message.PhotoMessage;

@@ -1,7 +1,5 @@
 process.env.TELEGRAM_BOT_MODERATOR_CHAT_ID = '129';
 
-import { expect } from 'chai';
-import 'mocha';
 import sinon from 'sinon';
 import { Telegraf } from 'telegraf';
 import { setUpBotBehavior } from './behavior';
@@ -182,7 +180,7 @@ describe('Behaviour test', () => {
       botMocker.expects('answerCbQuery').twice();
 
       await bot.handleUpdate(createModeratorVoteUpdate(1, 'Good news article', '+'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [1], votesAgainst: [], finished: false });
+      expect(votes).toEqual({ disallowedToVote: [], votesFor: [1], votesAgainst: [], finished: false });
 
       botMocker.expects('sendMessage')
         .withArgs(kChannelId, sinon.match('Good news article'), sinon.match({ reply_markup: {} }))
@@ -194,7 +192,9 @@ describe('Behaviour test', () => {
       articlesDatastoreMocker.expects('updateDatastoreEntry');
 
       await bot.handleUpdate(createModeratorVoteUpdate(2, 'Good news article', '+'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [1, 2], votesAgainst: [], finished: true });
+      expect(votes).toEqual(
+        { disallowedToVote: [], votesFor: [1, 2], votesAgainst: [], finished: true }
+      );
     });
 
     it('Got negative votes, posting to junk group', async () => {
@@ -207,16 +207,20 @@ describe('Behaviour test', () => {
       botMocker.expects('answerCbQuery').thrice();
 
       await bot.handleUpdate(createModeratorVoteUpdate(1, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
+      expect(votes).toEqual({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
 
       botMocker.expects('sendMessage').withArgs(kJunkGroupId, sinon.match('Bad news article'));
       botMocker.expects('deleteMessage').withArgs(kModeratorChatId, kModeratorChatMessageId);
 
       await bot.handleUpdate(createModeratorVoteUpdate(2, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false });
+      expect(votes).toEqual(
+        { disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false }
+      );
 
       await bot.handleUpdate(createModeratorVoteUpdate(3, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: true });
+      expect(votes).toEqual(
+        { disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: true }
+      );
     });
   });
 
@@ -230,13 +234,17 @@ describe('Behaviour test', () => {
       statsDatastoreMocker.expects('updateDatastoreEntry').thrice();
 
       await bot.handleUpdate(createReaderVoteUpdate(1, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
+      expect(votes).toEqual({ disallowedToVote: [], votesFor: [], votesAgainst: [1], finished: false });
 
       await bot.handleUpdate(createReaderVoteUpdate(2, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false });
+      expect(votes).toEqual(
+        { disallowedToVote: [], votesFor: [], votesAgainst: [1, 2], finished: false }
+      );
 
       await bot.handleUpdate(createReaderVoteUpdate(3, 'Bad news article', '-'));
-      expect(votes).to.deep.equal({ disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: false });
+      expect(votes).toEqual(
+        { disallowedToVote: [], votesFor: [], votesAgainst: [1, 2, 3], finished: false }
+      );
     });
   });
 });
