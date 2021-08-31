@@ -1,6 +1,6 @@
 import { Context, Telegraf } from 'telegraf'
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
-import { Message } from 'typegram'
+import { Message, Update } from 'typegram';
 import { CallbackQuery } from 'typegram/callback';
 import { BotConfig } from './config/config';
 import { DatabaseInterface } from './storage';
@@ -38,7 +38,7 @@ function setUpPing(bot: Telegraf) {
 }
 
 function isPrivateMessage(msg: Message): boolean {
-  return msg.chat && msg.chat.type == 'private';
+  return msg.chat.type == 'private';
 }
 
 function anonymouslyForwardMessage(
@@ -71,7 +71,6 @@ function setUpReporterDialog(
   config: BotConfig,
 ) {
   bot.hears('/start', async ctx => {
-    console.log('GOT START')
     if (!isPrivateMessage(ctx.message)) return;
     await ctx.reply(config.textMessages.HELLO_MESSAGE);
   });
@@ -141,7 +140,6 @@ function setUpReporterDialog(
   bot.hears('/no', async ctx => {
     if (!isPrivateMessage(ctx.message)) return;
 
-    const chatId = ctx.message.chat.id;
     const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
     s.state = 'start';
     s.message = undefined;
@@ -149,24 +147,10 @@ function setUpReporterDialog(
     await reporterStatesDb.saveDatastoreEntry(ctx.message.from.id.toString(), s);
   });
 
-  bot.on('text', async (ctx) => {
-    console.log('GOT TEXT')
-    if (!isPrivateMessage(ctx.message)) return;
-    if (ctx.message.text && ctx.message.text.startsWith('/')) return;
-    const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
-    if (s.state == 'start') {
-      await ctx.reply(config.textMessages.NEED_SEND_ARTICLE_CMD);
-    } else if (s.state == 'waiting_message') {
-      await ctx.reply(config.textMessages.ARTICLE_REQUEST_APPROVAL);
-      s.state = 'waiting_approval';
-      s.message = ctx.message;
-    } else if (s.state == 'waiting_approval') {
-    }
-
-    await reporterStatesDb.saveDatastoreEntry(ctx.message.from.id.toString(), s);
-  });
-
-  bot.on('photo', async (ctx) => {
+  const articleHandler = async (ctx: {
+    message: Update.New & Update.NonChannel & (Message.PhotoMessage | Message.TextMessage);
+    reply: (s: string) => Promise<Message.TextMessage>
+  }) => {
     if (!isPrivateMessage(ctx.message)) return;
     const s = (await reporterStatesDb.readDatastoreEntry(ctx.message.from.id.toString())) ?? { state: 'start' };
     if (s.state == 'start') {
@@ -179,7 +163,10 @@ function setUpReporterDialog(
     }
 
     await reporterStatesDb.saveDatastoreEntry(ctx.message.from.id.toString(), s);
-  });
+  }
+
+  bot.on('text', articleHandler);
+  bot.on('photo', articleHandler);
 
   bot.on('edited_message', async ctx => {
     if (!isPrivateMessage(ctx.editedMessage)) return;
