@@ -6,7 +6,6 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test:dev": "mocha",
     "test:watch": "jest --watch",
     "test": "jest"
   },
