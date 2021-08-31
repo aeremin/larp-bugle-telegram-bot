@@ -8,9 +8,6 @@ import { MessageVotesDatabase, NewsArticlesDatabase, ReporterStateDatabase, User
 
 dotenv.config();
 
-// See https://github.com/yagop/node-telegram-bot-api/issues/319
-process.env.NTBA_FIX_319 = 'X';
-
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
 setUpBotBehavior(bot, new MessageVotesDatabase(), new UserStatsDatabase(), new NewsArticlesDatabase(), new ReporterStateDatabase(), messages.getConfig());
 
