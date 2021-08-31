@@ -68,7 +68,7 @@ describe('Behaviour test', () => {
   });
 
   afterEach(() => {
-    // botMocker.verify();
+    botMocker.verify();
     votesDatastoreMocker.verify();
     statsDatastoreMocker.verify();
     articlesDatastoreMocker.verify();
