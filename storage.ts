@@ -51,6 +51,7 @@ class DatastoreConnector<T> implements DatabaseInterface<T> {
     const task = {
       key: this.datastore.key([this.kDatastoreKind, dbKey]),
       data: entity,
+      excludeFromIndexes: ['text', 'caption', 'message.text', 'message.caption']
     };
     if (!dsInterface)
       dsInterface = this.datastore;
